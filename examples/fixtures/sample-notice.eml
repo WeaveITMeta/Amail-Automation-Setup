@@ -1,0 +1,10 @@
+From: Mailer Daemon <mailer-daemon@example.net>
+To: hello@example.com
+Subject: [notice] Delivery status
+Message-ID: <notice-example@example.net>
+Auto-Submitted: auto-replied
+MIME-Version: 1.0
+Content-Type: multipart/report; report-type=delivery-status
+Date: Fri, 6 Nov 2026 00:00:00 +0000
+
+This fixture is a machine notice. It is not a customer inquiry.

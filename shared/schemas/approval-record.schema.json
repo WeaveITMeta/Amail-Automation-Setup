@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/approval-record.schema.json",
+  "title": "Human approval",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "approval_id", "draft_id", "permission", "approver", "decision", "rendered_sha256", "recorded_at"],
+  "properties": {
+    "schema_version": {"type": "integer", "const": 1},
+    "approval_id": {"type": "string"},
+    "draft_id": {"type": "string"},
+    "permission": {"type": "string", "const": "send"},
+    "approver": {"type": "string", "const": "person"},
+    "decision": {"type": "string", "enum": ["approved", "rejected"]},
+    "rendered_sha256": {"type": "string", "pattern": "^sha256:[a-z0-9]+$"},
+    "recorded_at": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"}
+  }
+}

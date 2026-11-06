@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "idempotency_key": "EXAMPLE_SES_MESSAGE_ID",
+  "role": "hello",
+  "audience": "new_inquiry",
+  "intent_hypothesis": "first_reply_new_inquiry",
+  "internal_only": true,
+  "recommended_next_step": "draft_for_human_review",
+  "external_send": "not_authorized"
+}

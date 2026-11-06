@@ -1,0 +1,7 @@
+Hello,
+
+We received your message to {{organization}} {{role_display}}. A person will review it.
+
+This note does not confirm an order, a price, a refund, an appointment, or a decision.
+
+{{organization}}

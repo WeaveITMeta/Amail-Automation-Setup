@@ -1,0 +1,21 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "SendOnlyFromApprovedAddresses",
+      "Effect": "Allow",
+      "Action": ["ses:SendEmail", "ses:SendRawEmail"],
+      "Resource": "arn:aws:ses:REGION:EXAMPLE_ACCOUNT_ID:identity/example.com",
+      "Condition": {
+        "StringEquals": {
+          "ses:FromAddress": [
+            "hello@example.com",
+            "sales@example.com",
+            "support@example.com",
+            "projects@example.com"
+          ]
+        }
+      }
+    }
+  ]
+}

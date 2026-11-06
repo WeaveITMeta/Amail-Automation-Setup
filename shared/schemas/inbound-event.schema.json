@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/inbound-event.schema.json",
+  "title": "Normalized inbound event",
+  "description": "Provider-neutral wake. The MIME body is not included.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "idempotency_key", "ingress", "wake_source", "received_at", "raw_mail", "envelope", "headers", "verdicts"],
+  "properties": {
+    "schema_version": {"type": "integer", "const": 1},
+    "idempotency_key": {"type": "string", "pattern": "^[A-Za-z0-9._-]{8,200}$"},
+    "ingress": {"type": "string", "enum": ["ses_s3"]},
+    "wake_source": {
+      "type": "string",
+      "enum": ["sns_worker_queue", "coordinator_fanout", "peer_wake", "direct_webhook", "other"]
+    },
+    "received_at": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"},
+    "raw_mail": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bucket", "object_key", "access"],
+      "properties": {
+        "bucket": {"type": "string"},
+        "object_key": {"type": "string", "pattern": "^raw/[A-Za-z0-9._-]+$"},
+        "access": {"type": "string", "const": "read_only"}
+      }
+    },
+    "envelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mail_from", "recipients"],
+      "properties": {
+        "mail_from": {"type": "string"},
+        "recipients": {"type": "array", "minItems": 1, "items": {"type": "string"}}
+      }
+    },
+    "headers": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "to", "subject", "message_id", "auto_submitted"],
+      "properties": {
+        "from": {"type": "string"},
+        "to": {"type": "array", "items": {"type": "string"}},
+        "subject": {"type": "string"},
+        "message_id": {"type": "string"},
+        "auto_submitted": {"type": "string"}
+      }
+    },
+    "verdicts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["spam", "virus", "spf", "dkim", "dmarc"],
+      "properties": {
+        "spam": {"type": "string", "enum": ["PASS", "FAIL", "GRAY", "PROCESSING_FAILED"]},
+        "virus": {"type": "string", "enum": ["PASS", "FAIL", "GRAY", "PROCESSING_FAILED"]},
+        "spf": {"type": "string", "enum": ["PASS", "FAIL", "GRAY", "PROCESSING_FAILED"]},
+        "dkim": {"type": "string", "enum": ["PASS", "FAIL", "GRAY", "PROCESSING_FAILED"]},
+        "dmarc": {"type": "string", "enum": ["PASS", "FAIL", "GRAY", "PROCESSING_FAILED"]}
+      }
+    }
+  }
+}

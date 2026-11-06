@@ -1,0 +1,93 @@
+{
+  "name": "acme-reference",
+  "organization": "ACME",
+  "domains": {
+    "primary": "example.com",
+    "external_parties": ["example.net", "example.org"]
+  },
+  "aws": {
+    "region": "REGION",
+    "account_id": "EXAMPLE_ACCOUNT_ID",
+    "sandbox_expected_until_production_review": true,
+    "ses": {
+      "identity": "example.com",
+      "configuration_set": "acme-transactional",
+      "receipt_rule_set": "acme-inbound",
+      "receipt_rule": "acme-store-and-notify",
+      "inbound_mx_host": "inbound-smtp.REGION.amazonaws.com",
+      "mail_from_domain": "bounce.example.com",
+      "mail_from_mx_host": "feedback-smtp.REGION.amazonses.com"
+    },
+    "s3": {
+      "bucket": "example-com-inbound-mail",
+      "prefix": "raw/",
+      "access": "read_only_object_from_wake"
+    }
+  },
+  "storage": {
+    "raw_mime": "durable-object-store",
+    "handled_keys": "durable-append-only-outside-workspace",
+    "attempt_log": "durable-append-only-outside-workspace",
+    "drafts": "durable-outside-workspace",
+    "approvals": "durable-outside-workspace",
+    "worker_disk": "ephemeral"
+  },
+  "runtime": {
+    "worker": "managed-linux",
+    "owner_pc_required": false,
+    "reader_identity": "read-only-get-object",
+    "sender_identity": "separate-least-privilege-ses-send",
+    "reader_command_example": "aws s3api get-object",
+    "polling": {
+      "default": "disabled",
+      "hidden_fallback": false,
+      "note": "A polling reconciler exists only after an explicit owner approval recorded outside the agent."
+    }
+  },
+  "wake": {
+    "payload": "object-reference-not-mime-body",
+    "choose_one_active_path": true,
+    "alternatives": [
+      {
+        "id": "sns_worker_queue",
+        "flow": "SES receipt writes S3, SNS notifies, a queue or Cloudflare Worker wakes the role agent with the object reference",
+        "status": "verified_alternative_not_universal"
+      },
+      {
+        "id": "coordinator_fanout",
+        "flow": "A coordinator webhook receives one notification and fans out object references to role agents",
+        "status": "verified_alternative_not_universal"
+      },
+      {
+        "id": "peer_wake",
+        "flow": "A direct webhook may be configured and dormant while a peer performs the actual wake",
+        "status": "verified_alternative_not_universal"
+      }
+    ]
+  },
+  "skills": {
+    "core": "shared/core/SKILL.md",
+    "catalog": "catalog/roles.json",
+    "routes": "catalog/routes.example.json",
+    "load_before_handling": true
+  },
+  "approval": {
+    "default_external_send": "human_approval",
+    "policy": "shared/policies/auto-reply-authorization.example.json",
+    "narrow_exception_example": "shared/policies/hello-first-reply.example.json",
+    "rubric_grants_send_authority": false
+  },
+  "artwork": {
+    "delivery": "public_https",
+    "cid_embedded": false,
+    "check_before_send_ready": true,
+    "allow_hosts": ["assets.example.com"],
+    "optional_hosts": ["Any HTTPS origin, including optional object storage such as R2 or S3 behind a public hostname"]
+  },
+  "optional_components": {
+    "cloudflare_dns": "Can publish SES MX, SPF, DKIM, and DMARC. Does not receive SES mail.",
+    "cloudflare_email_routing": "Alternate ingress. Not combined with SES MX on the same hostname.",
+    "cloudflare_r2_artwork": "Optional public asset host. Not required.",
+    "cloudflare_access_crm": "Optional protection in front of a CRM API. Not required and not mail ingress."
+  }
+}

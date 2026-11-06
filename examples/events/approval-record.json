@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "approval_id": "approval_example_001",
+  "draft_id": "draft_example_001",
+  "permission": "send",
+  "approver": "person",
+  "decision": "approved",
+  "rendered_sha256": "sha256:exampledigest",
+  "recorded_at": "2026-11-06T00:05:00Z"
+}

@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "pass_requires": [
+    "hard_checks_clear",
+    "judgment_checks_clear",
+    "confidence_at_or_above_policy_threshold"
+  ],
+  "pass_grants_send_authority": false,
+  "uncertainty_fails": true,
+  "auto_path_requires_exact_template": true,
+  "human_path_requires_rendered_checks": true,
+  "min_confidence_example": 0.95
+}

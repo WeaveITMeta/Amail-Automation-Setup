@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/attempt-record.schema.json",
+  "title": "Append-only attempt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "idempotency_key", "attempt_id", "wake_source", "recorded_at", "outcome", "error_class"],
+  "properties": {
+    "schema_version": {"type": "integer", "const": 1},
+    "idempotency_key": {"type": "string", "pattern": "^[A-Za-z0-9._-]{8,200}$"},
+    "attempt_id": {"type": "string", "pattern": "^attempt_[a-z0-9_]+$"},
+    "wake_source": {
+      "type": "string",
+      "enum": ["sns_worker_queue", "coordinator_fanout", "peer_wake", "direct_webhook", "other"]
+    },
+    "recorded_at": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"},
+    "outcome": {
+      "type": "string",
+      "enum": ["claimed", "duplicate_ignored", "skill_missing", "suppressed", "test_or_notice", "quarantined", "triaged", "draft_ready", "pending_approval", "send_ready", "approved", "sent", "send_failed", "no_reply", "operator_note"]
+    },
+    "error_class": {"type": "string", "maxLength": 80}
+  }
+}

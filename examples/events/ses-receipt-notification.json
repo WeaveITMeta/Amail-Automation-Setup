@@ -1,0 +1,26 @@
+{
+  "notificationType": "Received",
+  "mail": {
+    "timestamp": "2026-11-06T00:00:00.000Z",
+    "source": "pat@example.net",
+    "messageId": "EXAMPLE_SES_MESSAGE_ID",
+    "destination": ["hello@example.com"],
+    "commonHeaders": {
+      "from": ["Pat Lee <pat@example.net>"],
+      "to": ["hello@example.com"],
+      "subject": "Question about ACME",
+      "messageId": "<example-message@example.net>"
+    }
+  },
+  "receipt": {
+    "recipients": ["hello@example.com"],
+    "spamVerdict": {"status": "PASS"},
+    "virusVerdict": {"status": "PASS"},
+    "dmarcVerdict": {"status": "PASS"},
+    "action": {
+      "type": "S3",
+      "bucketName": "example-com-inbound-mail",
+      "objectKey": "raw/EXAMPLE_OBJECT_KEY"
+    }
+  }
+}

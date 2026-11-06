@@ -103,7 +103,7 @@ Escalation writes an internal record. It does not send a customer-facing message
 
 The default for every role is human approval of every external send. The kill switch ships on. While it is on, it stops every external send, including a send a person has already approved. Turning it off does not itself approve anything. Automatic external send still requires both a passing rubric and an enabled template-only rule whose rendered text and HTML match the trusted template. This file cannot enable a rule.
 
-A person approves by accepting one exact outbound message. The review tool stores a SHA-256 digest of that message's recipients, From, subject, text, HTML, template id, and template version. A chat line that says "approved" is not that digest, and it is not send authority.
+A person approves by accepting one exact outbound message. The review tool stores a SHA-256 digest of that message's From, To, Cc, Bcc, Reply-To, subject, text, HTML, template id, and template version. A chat line that says "approved" is not that digest, and it is not send authority. The sender claims that approval id in a reservation store before the provider call. The claim is single-use. A crash or an unknown provider result does not authorize a retry of the same id.
 
 Sales, support, and projects have no such rule in the default policy. One observed deployment also gave those three roles no auto-reply permission. Hello, in that same deployment, had a narrow owner-granted first-reply exception. The library records that exception as a disabled example so it can be tested. The example is not a recommendation and is not turned on by loading this skill.
 

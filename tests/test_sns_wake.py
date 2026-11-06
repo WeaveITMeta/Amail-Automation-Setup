@@ -100,6 +100,24 @@ class AwsTemplateTests(unittest.TestCase):
         self.assertNotIn("AKIA", blob)
         self.assertNotRegex(blob, r":[0-9]{12}:")
 
+    def test_sqs_attribute_values_are_strings(self):
+        attributes = json.loads(
+            (ROOT / "examples" / "aws" / "sqs-set-queue-attributes.example.json").read_text(encoding="utf-8")
+        )["Attributes"]
+        self.assertTrue(attributes)
+        self.assertTrue(all(isinstance(value, str) for value in attributes.values()))
+        policy = json.loads(attributes["Policy"])
+        self.assertEqual(policy["Statement"][0]["Action"], "sqs:SendMessage")
+        pretty = json.loads((ROOT / "examples" / "aws" / "sqs-queue-policy.example.json").read_text(encoding="utf-8"))
+        self.assertEqual(policy, pretty)
+        create_attributes = json.loads(
+            (ROOT / "examples" / "aws" / "inbound-queue-attributes.example.json").read_text(encoding="utf-8")
+        )
+        self.assertTrue(all(isinstance(value, str) for value in create_attributes.values()))
+        redrive = json.loads(create_attributes["RedrivePolicy"])
+        self.assertIn("deadLetterTargetArn", redrive)
+        self.assertIsInstance(redrive["deadLetterTargetArn"], str)
+
 
 if __name__ == "__main__":
     unittest.main()

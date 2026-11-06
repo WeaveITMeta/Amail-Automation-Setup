@@ -1,0 +1,6 @@
+{
+  "QueueUrl": "https://sqs.REGION.amazonaws.com/EXAMPLE_ACCOUNT_ID/example-inbound",
+  "Attributes": {
+    "Policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Sid\":\"AllowSNSSendMessage\",\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"sns.amazonaws.com\"},\"Action\":\"sqs:SendMessage\",\"Resource\":\"arn:aws:sqs:REGION:EXAMPLE_ACCOUNT_ID:example-inbound\",\"Condition\":{\"ArnEquals\":{\"aws:SourceArn\":\"arn:aws:sns:REGION:EXAMPLE_ACCOUNT_ID:example-inbound\"}}}]}"
+  }
+}

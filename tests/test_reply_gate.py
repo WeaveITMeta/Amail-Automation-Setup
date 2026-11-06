@@ -13,6 +13,7 @@ sys.path.insert(0, str(ROOT))
 
 from reference.binding import approval_problem, payload_sha256  # noqa: E402
 from reference.reply_gate import HUMAN, SEND, STOP, decide, delivery_allowed  # noqa: E402
+from reference.reservation import ReservationLedger  # noqa: E402
 from reference.templates import render_template  # noqa: E402
 
 TEMPLATE_TEXT = (ROOT / "shared" / "templates" / "hello-first-inquiry.txt").read_text(encoding="utf-8")
@@ -52,6 +53,7 @@ def request(**overrides):
         "thread_already_replied": False,
         "is_test_or_notice": False,
         "suppression_or_opt_out": False,
+        "idempotency_key": "EXAMPLE_SES_MESSAGE_ID",
         "already_sent": False,
         "already_pending_send": False,
         "virus_verdict_fail": False,
@@ -76,6 +78,7 @@ def template_message(**overrides):
         "to": ["pat@example.net"],
         "cc": [],
         "bcc": [],
+        "reply_to": [],
         "subject": TEMPLATE_SUBJECT,
         "text": render_template(TEMPLATE_TEXT, VARIABLES),
         "html": render_template(TEMPLATE_HTML, VARIABLES),
@@ -97,6 +100,7 @@ def human_message(**overrides):
         "to": ["pat@example.net"],
         "cc": [],
         "bcc": [],
+        "reply_to": [],
         "subject": "Re: Question about ACME",
         "text": "A person wrote this ACME reply.",
         "html": "<p>A person wrote this ACME reply.</p>",
@@ -122,6 +126,9 @@ def approval_for(message, **overrides):
         "template_version": message["template_version"],
         "from": message["from"],
         "to": list(message["to"]),
+        "cc": list(message["cc"]),
+        "bcc": list(message["bcc"]),
+        "reply_to": list(message["reply_to"]),
         "subject": message["subject"],
         "payload_sha256": payload_sha256(message),
     }
@@ -129,10 +136,14 @@ def approval_for(message, **overrides):
     return record
 
 
-def deliver(decision, message, **kwargs):
+def deliver(policy, message, *, req=None, approval=None, ledger=None, **kwargs):
     params = {
-        "decision": decision,
+        "request": request() if req is None else req,
+        "policy": policy,
+        "rate_state": rates(),
         "message": message,
+        "ledger": ledger if ledger is not None else ReservationLedger(),
+        "approval": approval,
         "template_text": TEMPLATE_TEXT,
         "template_html": TEMPLATE_HTML,
         "template_subject": TEMPLATE_SUBJECT,
@@ -174,26 +185,51 @@ class GateTests(unittest.TestCase):
         self.assertEqual(decision["reasons"], ["rubric_not_passed"])
 
     def test_explicit_narrow_grant_sends_only_the_rendered_template(self):
-        decision = decide(request(audience="routing"), enabled_hello_policy(), rates())
+        policy = enabled_hello_policy()
+        req = request(audience="routing")
+        decision = decide(req, policy, rates())
         self.assertEqual(decision["action"], SEND)
         self.assertEqual(decision["template_id"], "hello-first-inquiry")
+        self.assertEqual(decision["authorized_from"], "hello@example.com")
+        self.assertEqual(decision["authorized_to"], ["pat@example.net"])
+        self.assertEqual(decision["authorized_cc"], [])
+        self.assertEqual(decision["authorized_bcc"], [])
         message = template_message()
-        self.assertTrue(deliver(decision, message))
+        ledger = ReservationLedger()
+        self.assertTrue(deliver(policy, message, req=req, ledger=ledger))
+        self.assertFalse(deliver(policy, message, req=req, ledger=ledger))
         changed = template_message(html=message["html"].replace("review the inquiry", "issue a refund"))
-        self.assertFalse(deliver(decision, changed))
+        self.assertFalse(deliver(policy, changed, req=req))
         inbound_subject = template_message(subject="Question about ACME")
-        self.assertFalse(deliver(decision, inbound_subject))
+        self.assertFalse(deliver(policy, inbound_subject, req=req))
         wrong_version = template_message(template_version="9")
-        self.assertFalse(deliver(decision, wrong_version))
+        self.assertFalse(deliver(policy, wrong_version, req=req))
+
+    def test_template_send_rejects_recipient_and_sender_substitution(self):
+        policy = enabled_hello_policy()
+        req = request()
+        self.assertFalse(deliver(policy, template_message(to=["attacker@example.org"]), req=req))
+        self.assertFalse(deliver(policy, template_message(to=["pat@example.net", "extra@example.org"]), req=req))
+        self.assertFalse(deliver(policy, template_message(cc=["extra@example.org"]), req=req))
+        self.assertFalse(deliver(policy, template_message(bcc=["hidden@example.org"]), req=req))
+        self.assertFalse(deliver(policy, template_message(**{"from": "sales@example.com"}), req=req))
+        self.assertFalse(deliver(policy, template_message(reply_to=["other@example.net"]), req=req))
+        missing_cc = template_message()
+        del missing_cc["cc"]
+        self.assertFalse(deliver(policy, missing_cc, req=req))
 
     def test_tampered_template_variables_are_rejected(self):
-        decision = decide(request(), enabled_hello_policy(), rates())
+        policy = enabled_hello_policy()
         message = template_message()
         self.assertFalse(
-            deliver(decision, message, template_variables={"organization": "ACME", "role_display": "Hello", "subject": "wire the payment"})
+            deliver(
+                policy,
+                message,
+                template_variables={"organization": "ACME", "role_display": "Hello", "subject": "wire the payment"},
+            )
         )
         self.assertFalse(
-            deliver(decision, message, template_variables={"organization": "ACME <pay@example.net>", "role_display": "Hello"})
+            deliver(policy, message, template_variables={"organization": "ACME <pay@example.net>", "role_display": "Hello"})
         )
 
     def test_sales_support_and_projects_stay_human_even_if_a_rule_is_added(self):
@@ -300,19 +336,21 @@ class GateTests(unittest.TestCase):
         approval = approval_for(message)
         stopped = decide(request(role="support"), default, rates())
         self.assertEqual(stopped["reasons"], ["kill_switch_global"])
-        self.assertFalse(deliver(stopped, message, approval=approval, allow_hosts=[], required_assets=[]))
-        automatic = decide(request(), enabled_hello_policy(), rates())
+        self.assertFalse(
+            deliver(default, message, req=request(role="support"), approval=approval, allow_hosts=[], required_assets=[])
+        )
+        automatic = enabled_hello_policy()
         self.assertTrue(deliver(automatic, template_message()))
         enabled = enabled_hello_policy()
         enabled["kill_switch"]["global"] = True
         killed = decide(request(), enabled, rates())
         self.assertEqual(killed["action"], STOP)
-        self.assertFalse(deliver(killed, template_message(), approval=approval_for(template_message())))
+        self.assertFalse(deliver(enabled, template_message(), approval=approval_for(template_message())))
         role_policy = enabled_hello_policy()
         role_policy["kill_switch"]["roles"] = {"hello": True}
         role_killed = decide(request(), role_policy, rates())
         self.assertEqual(role_killed["reasons"], ["kill_switch_role"])
-        self.assertFalse(deliver(role_killed, template_message(), approval=approval_for(template_message())))
+        self.assertFalse(deliver(role_policy, template_message(), approval=approval_for(template_message())))
 
     def test_approval_is_bound_to_the_exact_message_and_is_single_use(self):
         policy = enabled_hello_policy()
@@ -322,26 +360,56 @@ class GateTests(unittest.TestCase):
         self.assertEqual(decision["reasons"], ["role_requires_human"])
         message = template_message()
         approval = approval_for(message)
-        self.assertTrue(deliver(decision, message, approval=approval))
+        ledger = ReservationLedger()
+        self.assertTrue(deliver(policy, message, approval=approval, ledger=ledger))
+        self.assertFalse(deliver(policy, message, approval=approval, ledger=ledger))
         other = template_message(html=message["html"] + "<p>Different offer.</p>")
-        self.assertEqual(approval_problem(other, approval, ()), "approval_mismatch")
-        self.assertFalse(deliver(decision, other, approval=approval))
-        swapped_recipient = approval_for(message, to=["other@example.net"])
-        self.assertEqual(approval_problem(message, swapped_recipient, ()), "approval_mismatch")
+        self.assertEqual(approval_problem(other, approval), "approval_mismatch")
+        self.assertFalse(deliver(policy, other, approval=approval))
+        swapped = template_message(to=["other@example.net"])
+        self.assertFalse(deliver(policy, swapped, approval=approval))
+        hidden = template_message(bcc=["hidden@example.org"])
+        self.assertFalse(deliver(policy, hidden, approval=approval_for(template_message())))
+        swapped_sender = template_message(**{"from": "sales@example.com"})
+        self.assertFalse(deliver(policy, swapped_sender, approval=approval))
         short = approval_for(message, payload_sha256="sha256:exampledigest")
-        self.assertEqual(approval_problem(message, short, ()), "approval_digest_invalid")
-        self.assertIsNone(approval_problem(message, approval, ()))
-        self.assertEqual(approval_problem(message, approval, {approval["approval_id"]}), "approval_replay")
-        self.assertFalse(deliver(decision, message, approval=approval, consumed_approval_ids=[approval["approval_id"]]))
+        self.assertEqual(approval_problem(message, short), "approval_digest_invalid")
+        self.assertIsNone(approval_problem(message, approval))
+        self.assertFalse(
+            delivery_allowed(
+                request=request(),
+                policy=policy,
+                rate_state=rates(),
+                message=message,
+                approval=approval,
+                ledger=None,
+                template_text=TEMPLATE_TEXT,
+                template_html=TEMPLATE_HTML,
+                template_subject=TEMPLATE_SUBJECT,
+                template_version=TEMPLATE_VERSION,
+                template_variables=VARIABLES,
+                allow_hosts=["assets.example.com"],
+                required_assets=[ASSET],
+            )
+        )
         chat = dict(approval)
         del chat["payload_sha256"]
         chat["chat_transcript"] = "approved"
-        self.assertEqual(approval_problem(message, chat, ()), "approval_digest_invalid")
+        self.assertEqual(approval_problem(message, chat), "approval_digest_invalid")
 
     def test_null_reverse_path_is_not_overridden_by_approval(self):
-        decision = decide(request(envelope_mail_from="<>"), enabled_hello_policy(), rates())
+        policy = enabled_hello_policy()
         message = human_message()
-        self.assertFalse(deliver(decision, message, approval=approval_for(message), allow_hosts=[], required_assets=[]))
+        self.assertFalse(
+            deliver(
+                policy,
+                message,
+                req=request(envelope_mail_from="<>"),
+                approval=approval_for(message),
+                allow_hosts=[],
+                required_assets=[],
+            )
+        )
 
 
 if __name__ == "__main__":

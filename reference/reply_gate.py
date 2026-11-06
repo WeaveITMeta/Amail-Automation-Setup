@@ -10,7 +10,8 @@ from __future__ import annotations
 
 import re
 
-from reference.binding import addr_spec, approval_problem, template_problem
+from reference.binding import addr_spec, approval_problem, envelope_problem, payload_sha256, template_problem
+from reference.reservation import ReservationLedger
 from reference.send_ready import rendered_failures
 
 HUMAN = "human_review"
@@ -74,9 +75,13 @@ HUMAN_CAN_RELEASE = frozenset(
         "rate_state_unavailable",
         "rule_audiences_too_wide",
         "rule_missing_follow_up_deny",
+        "sender_not_in_rule",
+        "rule_incomplete",
         "spam",
     }
 )
+
+_IDEMPOTENCY = re.compile(r"^[A-Za-z0-9._:-]{8,200}$")
 
 REQUIRED_KEYS = (
     "role",
@@ -253,15 +258,44 @@ def decide(request, policy, rate_state):
     if limited:
         return _decision(HUMAN, [limited])
 
-    return _decision(SEND, ["explicit_rule_and_rubric"], request["template_id"])
+    idempotency_key = request.get("idempotency_key")
+    if not isinstance(idempotency_key, str) or _IDEMPOTENCY.fullmatch(idempotency_key) is None:
+        return _decision(STOP, ["idempotency_key_missing"])
+    try:
+        authorized_from = addr_spec(rule.get("from_address"))
+    except (TypeError, ValueError):
+        return _decision(HUMAN, ["sender_not_in_rule"])
+    version = rule.get("template_version")
+    if not isinstance(version, str) or not version or any(char.isspace() for char in version):
+        return _decision(HUMAN, ["rule_incomplete"])
+    try:
+        authorized_to = [addr_spec(request["auto_reply_destination"])]
+    except (TypeError, ValueError):
+        return _decision(HUMAN, ["destination_not_authenticated"])
+    return _decision(
+        SEND,
+        ["explicit_rule_and_rubric"],
+        request["template_id"],
+        authorized={
+            "authorized_from": authorized_from,
+            "authorized_to": authorized_to,
+            "authorized_cc": [],
+            "authorized_bcc": [],
+            "authorized_reply_to": [],
+            "template_version": version,
+        },
+        send_key="auto:" + idempotency_key,
+    )
 
 
 def delivery_allowed(
     *,
-    decision,
+    request,
+    policy,
+    rate_state,
     message,
+    ledger=None,
     approval=None,
-    consumed_approval_ids=(),
     template_text=None,
     template_html=None,
     template_subject=None,
@@ -270,27 +304,36 @@ def delivery_allowed(
     allow_hosts=(),
     required_assets=(),
 ):
-    """Decide whether these exact bytes may be handed to SES.
+    """Authorize one handoff of this exact message.
 
-    `decide` chooses the policy outcome. This function checks that outcome
-    against the message. A kill switch stops human-approved sends as well as
-    template sends. Template sends must equal the trusted render. Human sends
-    must carry a digest of these bytes and an unused approval id. A chat
-    transcript is not an approval.
+    The decision is recomputed here. A caller-supplied action or recipient
+    list is not an input. `ledger` must be a ReservationLedger. Omitting it
+    refuses the send. A True result means this caller won `handoff_started`
+    and may call the provider once. A crash after that, or an unknown
+    provider result, stays on that key and does not become another send.
     """
 
-    if not isinstance(decision, dict):
+    if not isinstance(ledger, ReservationLedger):
         return False
+    decision = decide(request, policy, rate_state)
     reasons = decision.get("reasons")
     if not isinstance(reasons, list) or HARD_STOP_REASONS.intersection(reasons):
         return False
     if rendered_failures(message, allow_hosts=allow_hosts, required_assets=required_assets):
         return False
     action = decision.get("action")
+    try:
+        digest = payload_sha256(message)
+    except (TypeError, ValueError):
+        return False
     if action == SEND:
         if reasons != ["explicit_rule_and_rubric"] or not decision.get("template_id"):
             return False
-        return (
+        if envelope_problem(decision, message) is not None:
+            return False
+        if decision.get("template_version") != template_version:
+            return False
+        if (
             template_problem(
                 message,
                 text_source=template_text,
@@ -300,12 +343,18 @@ def delivery_allowed(
                 variables=template_variables,
                 template_id=decision["template_id"],
             )
-            is None
-        )
+            is not None
+        ):
+            return False
+        return ledger.claim_handoff(decision.get("send_key"), digest)
     if not (len(reasons) == 1 and reasons[0] in HUMAN_CAN_RELEASE):
         return False
     if action == HUMAN or (action == STOP and reasons == ["spam"]):
-        return approval_problem(message, approval, consumed_approval_ids) is None
+        if approval_problem(message, approval) is not None:
+            return False
+        if approval.get("payload_sha256") != digest:
+            return False
+        return ledger.claim_handoff(approval.get("approval_id"), digest)
     return False
 
 
@@ -415,5 +464,10 @@ def _validate_request(request):
     return None
 
 
-def _decision(action, reasons, template_id=None):
-    return {"action": action, "reasons": list(reasons), "template_id": template_id}
+def _decision(action, reasons, template_id=None, authorized=None, send_key=None):
+    result = {"action": action, "reasons": list(reasons), "template_id": template_id}
+    if authorized:
+        result.update(authorized)
+    if send_key:
+        result["send_key"] = send_key
+    return result

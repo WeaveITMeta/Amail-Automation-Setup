@@ -206,7 +206,9 @@ The gate in [reference/reply_gate.py](reference/reply_gate.py) then requires all
 - Rubric pass, confidence at or above the policy threshold, a single recipient, no attachment, no mailing list, rate counters present and under the caps.
 - DMARC passed for the header From. The automatic destination is that one addr-spec. The envelope MAIL FROM can be a different bounce domain and is not the reply target. A null reverse path (`<>`) is `do_not_send`. A Reply-To that disagrees with header From is not used automatically.
 
-`delivery_allowed` then compares the subject, text, and HTML with the trusted template rendered with only `organization` and `role_display`. A changed sentence or an extra variable fails closed.
+`delivery_allowed` recomputes that decision. It does not accept a caller-supplied action or recipient list. The message From, To, Cc, Bcc, and outbound Reply-To must equal the authorized envelope. A matching template body with a different recipient, an added Cc or Bcc, or a different From does not send. The subject, text, and HTML must equal the trusted template rendered with only `organization` and `role_display`.
+
+The same call claims a send key on a reservation ledger before it returns. The claim moves the key to `handoff_started`. A second call, a concurrent caller, and a later retry of that key are refused. If the process crashes after the claim, including after the provider accepts the message but before the outcome is recorded, the key stays unavailable for an automatic retry. A person who should try again needs a new approval id. The ledger in this repository is an in-process reference. It is not a durable service. A missing ledger refuses the send. An operator store has to keep the same states across restarts. A fresh empty ledger is not permission to send a key that might already have been handed off.
 
 Other policy outcomes are `human_review` or `do_not_send`. Duplicate delivery, virus fail, tests, notices, suppression, opt-out, no-reply, a null reverse path, and either kill switch are unconditional stops. A person approval does not override them. Spam does not auto-send. A person can still approve a rescue of a false positive, and that approval has to match the exact outbound bytes. Passing these unit tests does not make a deployment production-ready.
 
@@ -437,6 +439,7 @@ What drives the bill:
 - Artwork availability is your host's problem. The checker only sees the URL and the HTML.
 - Generalizing four roles does not predict the next inbox. Record new interviews on the blank template instead of editing these lessons from memory.
 - A green unit test run is a check of this repository. It is not production access, a live receipt rule, or permission to send.
+- `ReservationLedger` is an in-memory reference with a lock. It does not survive a restart and it is not a production idempotency service. Delivery is refused when that proof is missing. After a claim, do not automatically retry. An ambiguous provider response stays ambiguous.
 
 ## Getting started
 

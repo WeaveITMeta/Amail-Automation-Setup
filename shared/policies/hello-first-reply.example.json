@@ -66,6 +66,8 @@
         "templates": [
           "hello-first-inquiry"
         ],
+        "template_version": "1",
+        "from_address": "hello@example.com",
         "allow_audiences": [
           "new_inquiry",
           "routing"

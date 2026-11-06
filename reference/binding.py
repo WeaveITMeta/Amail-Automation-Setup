@@ -4,7 +4,8 @@ A person approves an artifact in whatever review tool the operator uses.
 This module does not read chat, and a sentence such as "approved" is not an
 approval. The review tool stores one SHA-256 digest of the canonical delivery
 document. The sender recomputes that digest from the message it is about to
-hand to SES. The two strings must match, and the approval id is single-use.
+hand to SES. The two strings must match. Single-use is not decided here. The reservation
+ledger has to claim the send key before any provider call.
 """
 
 from __future__ import annotations
@@ -55,10 +56,14 @@ def canonical_delivery(message):
     in_reply_to = headers.get("in_reply_to")
     if not isinstance(in_reply_to, str) or not isinstance(references, list):
         raise ValueError("threading headers are missing")
+    for key in ("to", "cc", "bcc", "reply_to"):
+        if key not in message:
+            raise ValueError(f"{key} is required on the delivery")
     to = _addr_list(message.get("to"), minimum=1)
     return {
-        "bcc": _addr_list(message.get("bcc", []), minimum=0),
-        "cc": _addr_list(message.get("cc", []), minimum=0),
+        "bcc": _addr_list(message.get("bcc"), minimum=0),
+        "cc": _addr_list(message.get("cc"), minimum=0),
+        "reply_to": _addr_list(message.get("reply_to"), minimum=0),
         "draft_id": _token(message.get("draft_id"), "draft_id"),
         "from": addr_spec(message.get("from")),
         "html": _body(message.get("html")),
@@ -72,12 +77,10 @@ def canonical_delivery(message):
     }
 
 
-def approval_problem(message, approval, consumed_approval_ids):
-    """Return a problem string, or None when this approval matches this message once.
+def approval_problem(message, approval):
+    """Return a problem string, or None when this approval matches this message.
 
-    Chat text is not an input. Replay protection is the consumed id set the
-    sender persists after a successful handoff to SES. This function does not
-    write that set.
+    Chat text is not an input. This function does not decide single-use.
     """
 
     if not isinstance(approval, dict):
@@ -89,10 +92,6 @@ def approval_problem(message, approval, consumed_approval_ids):
     approval_id = approval.get("approval_id")
     if not isinstance(approval_id, str) or not _APPROVAL_ID.fullmatch(approval_id):
         return "approval_invalid"
-    if not isinstance(consumed_approval_ids, (set, frozenset, list, tuple)):
-        return "approval_replay_state_missing"
-    if approval_id in set(consumed_approval_ids):
-        return "approval_replay"
     digest = approval.get("payload_sha256")
     if not isinstance(digest, str) or not _DIGEST.fullmatch(digest):
         return "approval_digest_invalid"
@@ -119,6 +118,49 @@ def approval_problem(message, approval, consumed_approval_ids):
         return "approval_mismatch"
     if approved_to != actual_to:
         return "approval_mismatch"
+    for field in ("cc", "bcc", "reply_to"):
+        try:
+            approved = [addr_spec(item) for item in approval[field]]
+            actual = [addr_spec(item) for item in message[field]]
+        except (KeyError, TypeError, ValueError):
+            return "approval_mismatch"
+        if approved != actual:
+            return "approval_mismatch"
+    return None
+
+
+def envelope_problem(decision, message):
+    """The message envelope must be the one the decision authorized.
+
+    Missing Cc, Bcc, or Reply-To is a failure. It is not an empty list.
+    """
+
+    if not isinstance(decision, dict) or not isinstance(message, dict):
+        return "envelope_unbound"
+    required = ("authorized_from", "authorized_to", "authorized_cc", "authorized_bcc", "authorized_reply_to")
+    if any(key not in decision for key in required):
+        return "envelope_unbound"
+    for key in ("from", "to", "cc", "bcc", "reply_to"):
+        if key not in message:
+            return "envelope_unbound"
+    try:
+        if addr_spec(message["from"]) != addr_spec(decision["authorized_from"]):
+            return "from_not_authorized"
+        if _addr_list(message["to"], minimum=1) != _addr_list(decision["authorized_to"], minimum=1):
+            return "to_not_authorized"
+        if _addr_list(message["cc"], minimum=0) != _addr_list(decision["authorized_cc"], minimum=0):
+            return "cc_not_authorized"
+        if _addr_list(message["bcc"], minimum=0) != _addr_list(decision["authorized_bcc"], minimum=0):
+            return "bcc_not_authorized"
+        if _addr_list(message["reply_to"], minimum=0) != _addr_list(decision["authorized_reply_to"], minimum=0):
+            return "reply_to_not_authorized"
+    except (TypeError, ValueError):
+        return "envelope_unbound"
+    if decision.get("action") == "template_send":
+        if decision["authorized_cc"] or decision["authorized_bcc"] or decision["authorized_reply_to"]:
+            return "envelope_unbound"
+        if len(decision["authorized_to"]) != 1:
+            return "to_not_authorized"
     return None
 
 

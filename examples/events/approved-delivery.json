@@ -4,6 +4,7 @@
   "to": ["pat@example.net"],
   "cc": [],
   "bcc": [],
+  "reply_to": [],
   "subject": "Re: Question about ACME",
   "text": "A person wrote this ACME reply.",
   "html": "<p>A person wrote this ACME reply.</p>",

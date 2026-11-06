@@ -20,7 +20,9 @@ Sales, support, and projects remain in `human_only_roles` in that file, matching
 
 A person approves one rendered draft. The review tool stores `payload_sha256` for that draft's From, recipients, subject, text, HTML, template id, and template version, plus a single-use `approval_id`. The sender recomputes the digest. A chat transcript is not an input to that check.
 
-The automatic path does not read an approval the model wrote. It calls `decide`, then `delivery_allowed`, which requires the outbound subject, text, and HTML to equal the trusted template. Supplied template ids are not enough.
+The automatic path does not read an approval the model wrote. `delivery_allowed` calls `decide` again and compares the message From, To, Cc, Bcc, and Reply-To with the envelope that decision authorized. The subject, text, and HTML must equal the trusted template. A template id by itself is not enough, and editing the decision object is not an input.
+
+Both paths then claim the send key on a `ReservationLedger`. The reference class is in-process and atomic. It is not durable storage. The claim moves the key to `handoff_started` before the provider call. A crash after that claim, a timeout, or any unknown result must not trigger another automatic send of the same key. Record `ambiguous` and stop. A human retry uses a new approval id. Do not treat a new empty ledger after a restart as proof that the previous handoff did not happen.
 
 The kill switch is an unconditional stop. A stored approval does not override it. The same is true for duplicates, virus failures, tests, notices, suppression, opt-out, no-reply senders, and a null reverse path.
 

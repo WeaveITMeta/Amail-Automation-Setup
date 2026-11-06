@@ -98,13 +98,12 @@ aws sns set-topic-attributes \
   --profile "$AWS_PROFILE"
 
 aws sqs set-queue-attributes \
-  --queue-url "$QUEUE_URL" \
-  --attributes "{\"Policy\":$(jq -c . examples/aws/sqs-queue-policy.example.json)}" \
+  --cli-input-json file://examples/aws/sqs-set-queue-attributes.example.json \
   --region "$AWS_REGION" \
   --profile "$AWS_PROFILE"
 ```
 
-`jq` is only here to compact the policy into the attribute string. If you do not have it, paste the JSON yourself. Do not put a secret in that string.
+`sqs set-queue-attributes` takes `--attributes` as a map of strings. The queue policy has to be a JSON string inside that map, not a nested object. [examples/aws/sqs-set-queue-attributes.example.json](../examples/aws/sqs-set-queue-attributes.example.json) is that shape: `Attributes.Policy` is a string. Do not pass `--attributes "{\"Policy\":$(jq -c . policy.json)}"` without quoting the `jq` output as a JSON string. That form inserts an object and the CLI rejects it. The SNS `--attribute-value file://...` form is different: that parameter is already one string, so the policy file contents are the value.
 
 Subscribe the queue with the SNS envelope intact (`RawMessageDelivery=false`) so a consumer can verify the SNS signature. The HTTPS alternative for a Worker is below, in the Cloudflare notes. Confirm the subscription. SES does not start delivering because this subscribe command exists. The receipt rule has to name the topic, and the rule set has to be active.
 

@@ -1,0 +1,29 @@
+{
+  "RuleSetName": "acme-inbound",
+  "Rule": {
+    "Name": "acme-store-and-notify",
+    "Enabled": true,
+    "TlsPolicy": "Optional",
+    "Recipients": [
+      "hello@example.com",
+      "sales@example.com",
+      "support@example.com",
+      "projects@example.com"
+    ],
+    "ScanEnabled": true,
+    "Actions": [
+      {
+        "S3Action": {
+          "BucketName": "example-com-inbound-mail",
+          "ObjectKeyPrefix": "raw/",
+          "TopicArn": "arn:aws:sns:REGION:EXAMPLE_ACCOUNT_ID:example-inbound"
+        }
+      },
+      {
+        "StopAction": {
+          "Scope": "RuleSet"
+        }
+      }
+    ]
+  }
+}

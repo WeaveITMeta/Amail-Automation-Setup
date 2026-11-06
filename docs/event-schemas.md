@@ -10,7 +10,7 @@ The JSON Schemas under [shared/schemas/](../shared/schemas/handled-record.schema
 | [attempt-record.json](../examples/events/attempt-record.json) | [attempt-record.schema.json](../shared/schemas/attempt-record.schema.json) | One append-only attempt. |
 | [triage-report.json](../examples/events/triage-report.json) | [triage-report.schema.json](../shared/schemas/triage-report.schema.json) | Internal report. `external_send` is `not_authorized` in the example. |
 | [draft-record.json](../examples/events/draft-record.json) | [draft-record.schema.json](../shared/schemas/draft-record.schema.json) | Permission `draft`, with threading and an HTTPS asset. |
-| [approval-record.json](../examples/events/approval-record.json) | [approval-record.schema.json](../shared/schemas/approval-record.schema.json) | Permission `send`, approver `person`. |
+| [approval-record.json](../examples/events/approval-record.json) | [approval-record.schema.json](../shared/schemas/approval-record.schema.json) | Permission `send`, approver `person`, `payload_sha256` of [approved-delivery.json](../examples/events/approved-delivery.json). |
 
 `wake_source` is an enum: `sns_worker_queue`, `coordinator_fanout`, `peer_wake`, `direct_webhook`, or `other`. The example uses `coordinator_fanout` because that was one of the verified alternatives, not because it is mandatory. Change it to the path you actually run.
 

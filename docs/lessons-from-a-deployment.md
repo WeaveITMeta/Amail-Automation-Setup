@@ -12,8 +12,9 @@ Interviews agreed on the following, so the template treats them as the design:
 - The handled key is append-only and is created before the message is parsed.
 - The role skill comes from the catalog before handling.
 - Triage reports are automatic and internal.
-- The sender is a different least-privilege identity.
 - Per-role artwork is public HTTPS and is checked on the rendered HTML before send-ready review.
+
+A separate least-privilege identity for sending is recommended architecture. Do not describe it as something every interviewed role already used. The sales sender setup was still pending when those notes were taken.
 
 ## Where that deployment was not uniform
 

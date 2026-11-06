@@ -1,10 +1,16 @@
 {
   "schema_version": 1,
   "approval_id": "approval_example_001",
-  "draft_id": "draft_example_001",
+  "draft_id": "draft_example_009",
   "permission": "send",
   "approver": "person",
   "decision": "approved",
-  "rendered_sha256": "sha256:exampledigest",
+  "from": "support@example.com",
+  "to": ["pat@example.net"],
+  "subject": "Re: Question about ACME",
+  "template_id": "human-composed",
+  "template_version": "0",
+  "payload_sha256": "sha256:01ca65bf6ce7df50ed56c69954a4d62a05d6c1380c7ca349179483c458381571",
+  "single_use": true,
   "recorded_at": "2026-11-06T00:05:00Z"
 }

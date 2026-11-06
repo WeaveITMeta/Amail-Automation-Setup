@@ -74,7 +74,7 @@ Automatic triage reports are internal. They are not external sends.
 
 - Fail any external draft the agent composed on its own.
 
-A passing rubric does not authorize sending. The gate also needs an explicit enabled rule, a cleared kill switch, and the rendered-message checks. The default policy provides none of the send authority.
+A passing rubric does not authorize sending. Automatic send also needs an explicit enabled rule, a kill switch that is off, and an exact match to the trusted template. A kill switch that is on stops human-approved sends too. The default policy provides none of the send authority.
 
 ## Done criteria
 

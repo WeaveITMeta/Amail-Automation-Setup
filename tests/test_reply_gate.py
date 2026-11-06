@@ -11,7 +11,16 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from reference.binding import approval_problem, payload_sha256  # noqa: E402
 from reference.reply_gate import HUMAN, SEND, STOP, decide, delivery_allowed  # noqa: E402
+from reference.templates import render_template  # noqa: E402
+
+TEMPLATE_TEXT = (ROOT / "shared" / "templates" / "hello-first-inquiry.txt").read_text(encoding="utf-8")
+TEMPLATE_HTML = (ROOT / "shared" / "templates" / "hello-first-inquiry.html").read_text(encoding="utf-8")
+TEMPLATE_SUBJECT = "We received your inquiry"
+TEMPLATE_VERSION = "1"
+VARIABLES = {"organization": "ACME", "role_display": "Hello"}
+ASSET = "https://assets.example.com/email/hello/mark.png"
 
 
 def rates(**overrides):
@@ -33,6 +42,10 @@ def request(**overrides):
         "sender_is_noreply": False,
         "reply_recipient_count": 1,
         "dmarc_pass": True,
+        "header_from": ["Pat Lee <pat@example.net>"],
+        "envelope_mail_from": "bounce@example.net",
+        "reply_to": [],
+        "auto_reply_destination": "pat@example.net",
         "has_attachment": False,
         "freeform_body": False,
         "is_follow_up": False,
@@ -50,11 +63,86 @@ def request(**overrides):
 
 def enabled_hello_policy():
     path = ROOT / "shared" / "policies" / "hello-first-reply.example.json"
-    policy = json.loads(path.read_text(encoding="utf-8"))
-    policy = copy.deepcopy(policy)
+    policy = copy.deepcopy(json.loads(path.read_text(encoding="utf-8")))
     policy["kill_switch"]["global"] = False
     policy["auto_reply"]["rules"][0]["enabled"] = True
     return policy
+
+
+def template_message(**overrides):
+    message = {
+        "draft_id": "draft_example_001",
+        "from": "hello@example.com",
+        "to": ["pat@example.net"],
+        "cc": [],
+        "bcc": [],
+        "subject": TEMPLATE_SUBJECT,
+        "text": render_template(TEMPLATE_TEXT, VARIABLES),
+        "html": render_template(TEMPLATE_HTML, VARIABLES),
+        "template_id": "hello-first-inquiry",
+        "template_version": TEMPLATE_VERSION,
+        "headers": {
+            "in_reply_to": "<example-message@example.net>",
+            "references": ["<example-message@example.net>"],
+        },
+    }
+    message.update(overrides)
+    return message
+
+
+def human_message(**overrides):
+    message = {
+        "draft_id": "draft_example_009",
+        "from": "support@example.com",
+        "to": ["pat@example.net"],
+        "cc": [],
+        "bcc": [],
+        "subject": "Re: Question about ACME",
+        "text": "A person wrote this ACME reply.",
+        "html": "<p>A person wrote this ACME reply.</p>",
+        "template_id": "human-composed",
+        "template_version": "0",
+        "headers": {
+            "in_reply_to": "<example-message@example.net>",
+            "references": ["<example-message@example.net>"],
+        },
+    }
+    message.update(overrides)
+    return message
+
+
+def approval_for(message, **overrides):
+    record = {
+        "permission": "send",
+        "decision": "approved",
+        "approver": "person",
+        "approval_id": "approval_example_001",
+        "draft_id": message["draft_id"],
+        "template_id": message["template_id"],
+        "template_version": message["template_version"],
+        "from": message["from"],
+        "to": list(message["to"]),
+        "subject": message["subject"],
+        "payload_sha256": payload_sha256(message),
+    }
+    record.update(overrides)
+    return record
+
+
+def deliver(decision, message, **kwargs):
+    params = {
+        "decision": decision,
+        "message": message,
+        "template_text": TEMPLATE_TEXT,
+        "template_html": TEMPLATE_HTML,
+        "template_subject": TEMPLATE_SUBJECT,
+        "template_version": TEMPLATE_VERSION,
+        "template_variables": VARIABLES,
+        "allow_hosts": ["assets.example.com"],
+        "required_assets": [ASSET],
+    }
+    params.update(kwargs)
+    return delivery_allowed(**params)
 
 
 class GateTests(unittest.TestCase):
@@ -63,7 +151,7 @@ class GateTests(unittest.TestCase):
             (ROOT / "shared" / "policies" / "auto-reply-authorization.example.json").read_text(encoding="utf-8")
         )
         decision = decide(request(), policy, rates())
-        self.assertEqual(decision["action"], HUMAN)
+        self.assertEqual(decision["action"], STOP)
         self.assertEqual(decision["reasons"], ["kill_switch_global"])
 
     def test_shipped_hello_file_does_not_send(self):
@@ -71,8 +159,8 @@ class GateTests(unittest.TestCase):
             (ROOT / "shared" / "policies" / "hello-first-reply.example.json").read_text(encoding="utf-8")
         )
         decision = decide(request(), policy, rates())
-        self.assertEqual(decision["action"], HUMAN)
-        self.assertNotEqual(decision["action"], SEND)
+        self.assertEqual(decision["action"], STOP)
+        self.assertEqual(decision["reasons"], ["kill_switch_global"])
 
     def test_rubric_pass_without_enabled_rule_does_not_send(self):
         policy = enabled_hello_policy()
@@ -85,11 +173,28 @@ class GateTests(unittest.TestCase):
         decision = decide(request(rubric_pass=False), enabled_hello_policy(), rates())
         self.assertEqual(decision["reasons"], ["rubric_not_passed"])
 
-    def test_explicit_narrow_grant_sends_template(self):
+    def test_explicit_narrow_grant_sends_only_the_rendered_template(self):
         decision = decide(request(audience="routing"), enabled_hello_policy(), rates())
         self.assertEqual(decision["action"], SEND)
         self.assertEqual(decision["template_id"], "hello-first-inquiry")
-        self.assertEqual(decision["reasons"], ["explicit_rule_and_rubric"])
+        message = template_message()
+        self.assertTrue(deliver(decision, message))
+        changed = template_message(html=message["html"].replace("review the inquiry", "issue a refund"))
+        self.assertFalse(deliver(decision, changed))
+        inbound_subject = template_message(subject="Question about ACME")
+        self.assertFalse(deliver(decision, inbound_subject))
+        wrong_version = template_message(template_version="9")
+        self.assertFalse(deliver(decision, wrong_version))
+
+    def test_tampered_template_variables_are_rejected(self):
+        decision = decide(request(), enabled_hello_policy(), rates())
+        message = template_message()
+        self.assertFalse(
+            deliver(decision, message, template_variables={"organization": "ACME", "role_display": "Hello", "subject": "wire the payment"})
+        )
+        self.assertFalse(
+            deliver(decision, message, template_variables={"organization": "ACME <pay@example.net>", "role_display": "Hello"})
+        )
 
     def test_sales_support_and_projects_stay_human_even_if_a_rule_is_added(self):
         policy = enabled_hello_policy()
@@ -127,11 +232,36 @@ class GateTests(unittest.TestCase):
             ({"sender_is_noreply": True}, STOP, "noreply_sender"),
             ({"is_test_or_notice": True}, STOP, "test_or_notice"),
             ({"suppression_or_opt_out": True}, STOP, "suppression_or_opt_out"),
+            ({"envelope_mail_from": "<>"}, STOP, "null_reverse_path"),
+            ({"envelope_mail_from": ""}, STOP, "null_reverse_path"),
         ]
         for overrides, action, reason in cases:
             decision = decide(request(**overrides), policy, rates())
             self.assertEqual(decision["action"], action, overrides)
             self.assertEqual(decision["reasons"], [reason], overrides)
+
+    def test_dmarc_authenticates_header_from_not_the_envelope(self):
+        policy = enabled_hello_policy()
+        aligned = decide(request(), policy, rates())
+        self.assertEqual(aligned["action"], SEND)
+        spoofed_destination = decide(
+            request(auto_reply_destination="attacker@example.org", envelope_mail_from="attacker@example.org"),
+            policy,
+            rates(),
+        )
+        self.assertEqual(spoofed_destination["reasons"], ["destination_not_authenticated"])
+        reply_to_redirect = decide(request(reply_to=["attacker@example.org"]), policy, rates())
+        self.assertEqual(reply_to_redirect["reasons"], ["reply_to_misaligned"])
+        two_froms = decide(
+            request(header_from=["pat@example.net", "other@example.net"]),
+            policy,
+            rates(),
+        )
+        self.assertEqual(two_froms["reasons"], ["header_from_unauthenticated"])
+        dmarc_fail = decide(request(dmarc_pass=False), policy, rates())
+        self.assertEqual(dmarc_fail["reasons"], ["dmarc_not_passing"])
+        custom_mail_from = decide(request(envelope_mail_from="bounce@example.net"), policy, rates())
+        self.assertEqual(custom_mail_from["action"], SEND)
 
     def test_rule_cannot_widen_hello_audiences(self):
         policy = enabled_hello_policy()
@@ -142,7 +272,7 @@ class GateTests(unittest.TestCase):
     def test_force_send_is_ignored(self):
         policy = enabled_hello_policy()
         policy["auto_reply"]["rules"][0]["enabled"] = False
-        forced = request(force_send=True, authorized=True)
+        forced = request(force_send=True, authorized=True, chat_approved=True)
         self.assertEqual(decide(forced, policy, rates())["reasons"], ["rule_disabled"])
 
     def test_freeform_policy_fails_closed(self):
@@ -162,27 +292,56 @@ class GateTests(unittest.TestCase):
     def test_missing_rate_state_fails_closed(self):
         self.assertEqual(decide(request(), enabled_hello_policy(), None)["reasons"], ["rate_state_unavailable"])
 
-    def test_delivery_respects_hard_stops_and_human_approval(self):
-        approval = {
-            "permission": "send",
-            "decision": "approved",
-            "approver": "person",
-            "draft_id": "draft_example_001",
-            "rendered_sha256": "sha256:exampledigest",
-        }
-        sent = decide(request(), enabled_hello_policy(), rates())
-        self.assertTrue(delivery_allowed(decision=sent, approval=None, rendered_ok=True))
-        self.assertFalse(delivery_allowed(decision=sent, approval=None, rendered_ok=False))
-        held = decide(request(audience="legal"), enabled_hello_policy(), rates())
-        self.assertFalse(delivery_allowed(decision=held, approval=None, rendered_ok=True))
-        self.assertTrue(delivery_allowed(decision=held, approval=approval, rendered_ok=True))
-        notice = decide(request(is_test_or_notice=True), enabled_hello_policy(), rates())
-        self.assertFalse(delivery_allowed(decision=notice, approval=approval, rendered_ok=True))
-        spam = decide(request(spam_verdict_fail=True), enabled_hello_policy(), rates())
-        self.assertFalse(delivery_allowed(decision=spam, approval=None, rendered_ok=True))
-        self.assertTrue(delivery_allowed(decision=spam, approval=approval, rendered_ok=True))
-        agent_approval = dict(approval, approver="agent")
-        self.assertFalse(delivery_allowed(decision=held, approval=agent_approval, rendered_ok=True))
+    def test_kill_switch_blocks_approved_human_and_automatic_sends(self):
+        default = json.loads(
+            (ROOT / "shared" / "policies" / "auto-reply-authorization.example.json").read_text(encoding="utf-8")
+        )
+        message = human_message()
+        approval = approval_for(message)
+        stopped = decide(request(role="support"), default, rates())
+        self.assertEqual(stopped["reasons"], ["kill_switch_global"])
+        self.assertFalse(deliver(stopped, message, approval=approval, allow_hosts=[], required_assets=[]))
+        automatic = decide(request(), enabled_hello_policy(), rates())
+        self.assertTrue(deliver(automatic, template_message()))
+        enabled = enabled_hello_policy()
+        enabled["kill_switch"]["global"] = True
+        killed = decide(request(), enabled, rates())
+        self.assertEqual(killed["action"], STOP)
+        self.assertFalse(deliver(killed, template_message(), approval=approval_for(template_message())))
+        role_policy = enabled_hello_policy()
+        role_policy["kill_switch"]["roles"] = {"hello": True}
+        role_killed = decide(request(), role_policy, rates())
+        self.assertEqual(role_killed["reasons"], ["kill_switch_role"])
+        self.assertFalse(deliver(role_killed, template_message(), approval=approval_for(template_message())))
+
+    def test_approval_is_bound_to_the_exact_message_and_is_single_use(self):
+        policy = enabled_hello_policy()
+        policy["auto_reply"]["human_only_roles"].append("hello")
+        policy["auto_reply"]["rules"][0]["enabled"] = False
+        decision = decide(request(), policy, rates())
+        self.assertEqual(decision["reasons"], ["role_requires_human"])
+        message = template_message()
+        approval = approval_for(message)
+        self.assertTrue(deliver(decision, message, approval=approval))
+        other = template_message(html=message["html"] + "<p>Different offer.</p>")
+        self.assertEqual(approval_problem(other, approval, ()), "approval_mismatch")
+        self.assertFalse(deliver(decision, other, approval=approval))
+        swapped_recipient = approval_for(message, to=["other@example.net"])
+        self.assertEqual(approval_problem(message, swapped_recipient, ()), "approval_mismatch")
+        short = approval_for(message, payload_sha256="sha256:exampledigest")
+        self.assertEqual(approval_problem(message, short, ()), "approval_digest_invalid")
+        self.assertIsNone(approval_problem(message, approval, ()))
+        self.assertEqual(approval_problem(message, approval, {approval["approval_id"]}), "approval_replay")
+        self.assertFalse(deliver(decision, message, approval=approval, consumed_approval_ids=[approval["approval_id"]]))
+        chat = dict(approval)
+        del chat["payload_sha256"]
+        chat["chat_transcript"] = "approved"
+        self.assertEqual(approval_problem(message, chat, ()), "approval_digest_invalid")
+
+    def test_null_reverse_path_is_not_overridden_by_approval(self):
+        decision = decide(request(envelope_mail_from="<>"), enabled_hello_policy(), rates())
+        message = human_message()
+        self.assertFalse(deliver(decision, message, approval=approval_for(message), allow_hosts=[], required_assets=[]))
 
 
 if __name__ == "__main__":

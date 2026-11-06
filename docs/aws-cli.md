@@ -57,7 +57,76 @@ aws ses create-receipt-rule-set \
   --profile "$AWS_PROFILE"
 ```
 
-Attach the S3 action to a rule whose bucket policy matches that rule name, then activate the set:
+Create the topic and queues before the receipt rule, because the rule's topic ARN has to exist. The rule file is [examples/aws/create-receipt-rule.example.json](../examples/aws/create-receipt-rule.example.json). It stores the object and publishes a pointer. It does not set `KmsKeyArn`. That field is the receipt action's client-side message encryption, which would make `GetObject` return ciphertext. SSE-S3 on the bucket is separate and is the minimal reference.
+
+Create the dead-letter queue before the main queue. The redrive ARN in [examples/aws/inbound-queue-attributes.example.json](../examples/aws/inbound-queue-attributes.example.json) is a placeholder. Substitute the DLQ ARN from the first command before you create the main queue. `maxReceiveCount` is 5. Visibility timeout is 120 seconds, which must be longer than one handling attempt.
+
+```bash
+aws sqs create-queue \
+  --queue-name example-inbound-dlq \
+  --attributes file://examples/aws/dlq-attributes.example.json \
+  --region "$AWS_REGION" \
+  --profile "$AWS_PROFILE"
+
+aws sqs create-queue \
+  --queue-name example-inbound \
+  --attributes file://examples/aws/inbound-queue-attributes.example.json \
+  --region "$AWS_REGION" \
+  --profile "$AWS_PROFILE"
+```
+
+Allow SES to publish to the topic, then allow that topic to send to the queue. The policy documents are [examples/aws/sns-topic-policy.example.json](../examples/aws/sns-topic-policy.example.json) and [examples/aws/sqs-queue-policy.example.json](../examples/aws/sqs-queue-policy.example.json). `file://` supplies the attribute string on current AWS CLI v2. Confirm with `help` before you rely on it.
+
+```bash
+aws sns create-topic \
+  --name example-inbound \
+  --region "$AWS_REGION" \
+  --profile "$AWS_PROFILE"
+
+aws sns set-topic-attributes \
+  --topic-arn "$TOPIC_ARN" \
+  --attribute-name SignatureVersion \
+  --attribute-value 2 \
+  --region "$AWS_REGION" \
+  --profile "$AWS_PROFILE"
+
+aws sns set-topic-attributes \
+  --topic-arn "$TOPIC_ARN" \
+  --attribute-name Policy \
+  --attribute-value file://examples/aws/sns-topic-policy.example.json \
+  --region "$AWS_REGION" \
+  --profile "$AWS_PROFILE"
+
+aws sqs set-queue-attributes \
+  --queue-url "$QUEUE_URL" \
+  --attributes "{\"Policy\":$(jq -c . examples/aws/sqs-queue-policy.example.json)}" \
+  --region "$AWS_REGION" \
+  --profile "$AWS_PROFILE"
+```
+
+`jq` is only here to compact the policy into the attribute string. If you do not have it, paste the JSON yourself. Do not put a secret in that string.
+
+Subscribe the queue with the SNS envelope intact (`RawMessageDelivery=false`) so a consumer can verify the SNS signature. The HTTPS alternative for a Worker is below, in the Cloudflare notes. Confirm the subscription. SES does not start delivering because this subscribe command exists. The receipt rule has to name the topic, and the rule set has to be active.
+
+```bash
+aws sns subscribe \
+  --topic-arn "$TOPIC_ARN" \
+  --protocol sqs \
+  --notification-endpoint "$QUEUE_ARN" \
+  --attributes RawMessageDelivery=false \
+  --region "$AWS_REGION" \
+  --profile "$AWS_PROFILE"
+```
+
+Create the receipt rule only after `$TOPIC_ARN` in the example file has been replaced, then activate the set. Activating replaces whatever rule set was active in that region.
+
+```bash
+aws ses create-receipt-rule \
+  --cli-input-json file://examples/aws/create-receipt-rule.example.json \
+  --region "$AWS_REGION" \
+  --profile "$AWS_PROFILE"
+```
+
 
 ```bash
 aws ses set-active-receipt-rule-set \

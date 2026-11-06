@@ -162,7 +162,7 @@ def _policies():
     if set(rule["allow_audiences"]) != {"new_inquiry", "routing"}:
         errors.append("hello example audiences must be new_inquiry and routing")
     decision = decide(_perfect_hello_request(), default, _rates())
-    if decision["action"] != "human_review" or decision["reasons"] != ["kill_switch_global"]:
+    if decision["action"] != "do_not_send" or decision["reasons"] != ["kill_switch_global"]:
         errors.append(f"default policy must stop a perfect hello request on the kill switch, got {decision}")
     return errors
 
@@ -180,6 +180,8 @@ def _config():
     observed = _load("shared/config/observed-multi-role.example.json")
     if observed["authorization"]["sales"] != "human_approval_every_external_send":
         errors.append("observed profile must keep sales on human approval")
+    if "sender" in observed.get("common", {}):
+        errors.append("observed profile must not claim a separate sender was verified for every role")
     return errors
 
 
@@ -270,6 +272,10 @@ def _perfect_hello_request():
         "sender_is_noreply": False,
         "reply_recipient_count": 1,
         "dmarc_pass": True,
+        "header_from": ["pat@example.net"],
+        "envelope_mail_from": "bounce@example.net",
+        "reply_to": [],
+        "auto_reply_destination": "pat@example.net",
         "has_attachment": False,
         "freeform_body": False,
         "is_follow_up": False,

@@ -12,8 +12,10 @@
     "handled_state": "append-only-key",
     "skill_load": "catalog-before-handling",
     "triage": "automatic-internal",
-    "sender": "separate-least-privilege-identity",
     "artwork": "public-https-checked-before-send-ready-review"
+  },
+  "recommended_not_established_for_every_role": {
+    "sender": "A separate least-privilege send identity is the reference design. The interviews did not establish that every role, including sales, already sent mail that way."
   },
   "wake_by_role": "not-recorded-here-on-purpose",
   "wake_alternatives_seen": ["sns_worker_queue", "coordinator_fanout", "peer_wake_with_dormant_direct_webhook"],

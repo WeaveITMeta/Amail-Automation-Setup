@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import sys
 import unittest
 from pathlib import Path
@@ -9,6 +10,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from reference.binding import payload_sha256  # noqa: E402
 from reference.idempotency import on_conditional_claim  # noqa: E402
 from reference.object_ref import object_reference  # noqa: E402
 from reference.preflight import classify_inbound  # noqa: E402
@@ -89,6 +91,11 @@ class MessageTests(unittest.TestCase):
             "missing_in_reply_to",
             rendered_failures(unthreaded, allow_hosts=["assets.example.com"], required_assets=["https://assets.example.com/email/hello/mark.png"]),
         )
+
+    def test_example_approval_matches_the_example_delivery(self):
+        message = json.loads((ROOT / "examples" / "events" / "approved-delivery.json").read_text(encoding="utf-8"))
+        approval = json.loads((ROOT / "examples" / "events" / "approval-record.json").read_text(encoding="utf-8"))
+        self.assertEqual(approval["payload_sha256"], payload_sha256(message))
 
     def test_library_validator(self):
         self.assertEqual(validate(), [])

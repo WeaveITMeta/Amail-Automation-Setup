@@ -31,8 +31,9 @@ Four role inboxes were interviewed and sanitized. The notes below are reusable d
 - An append-only handled key stopped a second handling run of the same message.
 - The role `SKILL.md` was loaded from a skill catalog before handling.
 - Triage and an internal report were automatic.
-- A separate least-privilege identity performed the external send.
 - Each role had publicly hosted artwork, referenced by HTTPS, and that artwork was checked before send-ready review.
+
+A separate least-privilege identity for sending is the recommended architecture. The interviews did not establish that every role already sent that way. Sales, in particular, did not have that sender setup confirmed.
 
 **Verified wake alternatives.** These were not the same on every role. Pick one active path and write down which one is live.
 
@@ -46,7 +47,7 @@ Four role inboxes were interviewed and sanitized. The notes below are reusable d
 
 **Recommendations beyond a bare handled key.** Add durable attempt metadata, a dead-letter queue for the wake, and redacted structured logs. The handled key prevents a second run. It does not explain a crash or a duplicate wake. Also keep thread-level memory if you ever allow a first-reply grant: a new message in the same thread has a new key, so the per-message key alone cannot tell you that you already replied.
 
-**Practices carried into the reference.** Raw MIME is untrusted content. Durable state survives a workspace reset because it is not stored only on the worker disk. The read identity and the send identity are different. The idempotency claim is written before parsing. Suppression and opt-out are decided before drafting. Test and notice messages get no reply. Writing a draft and sending it are different permissions. Review the exact rendered HTML and the hosted assets. Do not require `cid:` images; use public HTTPS assets. Preserve `In-Reply-To` and `References`.
+**Practices carried into the reference.** Raw MIME is untrusted content. Durable state survives a workspace reset because it is not stored only on the worker disk. Keep the read identity and the send identity separate. That split is recommended, not a finding that every role already sent mail. The idempotency claim is written before parsing. Suppression and opt-out are decided before drafting. Test and notice messages get no reply. Writing a draft and sending it are different permissions. Review the exact rendered HTML and the hosted assets. Do not require `cid:` images; use public HTTPS assets. Preserve `In-Reply-To` and `References`.
 
 **Optional pieces that were not on every role.** Public artwork can live on Cloudflare R2. A CRM API can sit behind Cloudflare Access. Neither is part of receiving mail, and neither is required for a role to run.
 
@@ -185,7 +186,7 @@ Before an artifact is marked send-ready:
 - Reject `cid:` references. Inline CID parts are not the reference.
 - Reject secret-shaped strings and payment-card patterns.
 
-A person then approves that exact render, or the authorization gate allows one pre-approved template. The sender recomputes the checks. It does not trust a boolean the model produced.
+A person approves one exact render, or the authorization gate allows one pre-approved template whose bytes match that template. The sender recomputes a SHA-256 digest over the From, recipients, subject, text, HTML, template id, and template version. The stored approval has to match that digest, and the approval id can be used once. A chat message that says "approved" is not the digest and does not send mail. The sender does not trust a boolean the model produced.
 
 Example artwork URLs are fictional. R2 with a public hostname is one optional place to host them. S3 behind a public hostname is another. The inbox stores the URL.
 
@@ -193,19 +194,21 @@ Example artwork URLs are fictional. R2 with a public hostname is one optional pl
 
 The rubric is [shared/rubric/safe-reply-rubric.md](shared/rubric/safe-reply-rubric.md). Hard failures and uncertainty set `rubric_pass` false. The trusted worker sets that flag after the checks. The drafting model does not.
 
-The gate in [reference/reply_gate.py](reference/reply_gate.py) then requires all of the following for `template_send`:
+The gate in [reference/reply_gate.py](reference/reply_gate.py) then requires all of the following before it will even return `template_send`. `delivery_allowed` still has to match the template bytes.
 
-- Kill switch global value is false, and the role switch is not on.
-- `default_outbound_mode` is `human_approval`.
-- The policy still requires a rubric pass and an explicit rule. Turning either requirement off fails closed.
-- Free-form model text is refused. `allow_freeform: true` fails closed.
+- Kill switch global value is false, and the role switch is not on. Either switch is `do_not_send` for every path, including a message a person already approved. Rollback starts here.
+- `default_outbound_mode` is `human_approval`. A policy that turns the rubric or the explicit-authorization requirement off also stops, rather than becoming a human bypass.
+- Free-form model text is refused. `allow_freeform: true` stops automatic send.
 - The role is not listed in `human_only_roles`.
 - The audience is not in the excluded set: partner, press, vendor, personal, legal, financial, government, spam, no-reply, or follow-up.
 - The intent `first_reply_new_inquiry` additionally allows only `new_inquiry` and `routing`, and the rule's allowlist cannot be wider than that. The rule must deny follow-ups.
 - One matching enabled rule, mode `template_only`, template id on that rule.
-- Rubric pass, confidence at or above the policy threshold, DMARC pass, a single recipient, no attachment, no mailing list, rate counters present and under the caps.
+- Rubric pass, confidence at or above the policy threshold, a single recipient, no attachment, no mailing list, rate counters present and under the caps.
+- DMARC passed for the header From. The automatic destination is that one addr-spec. The envelope MAIL FROM can be a different bounce domain and is not the reply target. A null reverse path (`<>`) is `do_not_send`. A Reply-To that disagrees with header From is not used automatically.
 
-Anything else is `human_review` or `do_not_send`. Duplicate delivery, virus fail, tests, notices, suppression, opt-out, and no-reply are hard stops. A person approval does not override them inside this sender. Spam does not auto-send; a person can still approve a rescue of a false positive.
+`delivery_allowed` then compares the subject, text, and HTML with the trusted template rendered with only `organization` and `role_display`. A changed sentence or an extra variable fails closed.
+
+Other policy outcomes are `human_review` or `do_not_send`. Duplicate delivery, virus fail, tests, notices, suppression, opt-out, no-reply, a null reverse path, and either kill switch are unconditional stops. A person approval does not override them. Spam does not auto-send. A person can still approve a rescue of a false positive, and that approval has to match the exact outbound bytes. Passing these unit tests does not make a deployment production-ready.
 
 There is no `force_send` input that works. Unknown authority fields are ignored.
 
@@ -233,7 +236,7 @@ Use a custom MAIL FROM on a subdomain that does not receive user mail, for examp
 
 That hostname is `amazonses.com`, not the inbound SMTP host. Do not point the apex MX at `feedback-smtp`, and do not point the MAIL FROM subdomain at `inbound-smtp`. AWS documents `~all` on that TXT record. Tighten to `-all` only after you know nothing else sends with that MAIL FROM.
 
-DMARC starts at `p=none` on `_dmarc.example.com`, with a report address you control on a domain you own, such as `dmarc-reports@example.com`. Move toward `quarantine` or `reject` after you have seen aligned mail. Relaxed SPF alignment is the default and is what makes a subdomain MAIL FROM align with `From: *@example.com`. Do not set `aspf=s` unless you mean to fail that alignment. DKIM alignment is the path to rely on: the `d=` domain matches the From domain.
+DMARC starts at `p=none` on `_dmarc.example.com`, with a report address you control on a domain you own, such as `dmarc-reports@example.com`. Move toward `quarantine` or `reject` after you have seen aligned mail. DMARC checks the domain in the header From, using DKIM alignment or SPF alignment of the envelope MAIL FROM. It does not mean the envelope address is who you should answer. Relaxed SPF alignment is the default and is what lets a bounce subdomain align with `From: *@example.com`. Do not set `aspf=s` unless you mean to fail that alignment. DKIM alignment is the path to rely on: the `d=` domain matches the header From domain. The inbox replies to that header From address only when the SES DMARC verdict for it passed.
 
 The apex SPF record is about who may send as the apex MAIL FROM. It is not the MX record and it is not a substitute for the MAIL FROM subdomain SPF. Keep a single SPF TXT record per hostname. Two SPF records are a permanent error.
 
@@ -330,7 +333,9 @@ Details and record tables: [docs/cloudflare.md](docs/cloudflare.md).
 ## Security
 
 - The inbound bucket blocks public access, denies non-TLS, and allows `s3:PutObject` only from `ses.amazonaws.com` with `AWS:SourceAccount` and `AWS:SourceArn` pinned to the receipt rule.
-- Encrypt objects. A customer-managed KMS key needs `kms:GenerateDataKey*` for that same SES source. SES wants the key ARN in the receipt action, not an alias. Default `aws/ses` does not need a key-policy edit. Encrypted SNS topics used with SES need a customer-managed key, because you cannot edit the AWS-managed key policy. Object Lock with a default retention period is not compatible with SES receipt to S3.
+- The minimal reference encrypts the bucket with SSE-S3 (`AES256`). `GetObject` returns the MIME bytes. The example reader policy has no `kms:Decrypt`, and the example receipt rule does not set a KMS key.
+- That is different from the receipt action's "encrypt message" option. That option is client-side encryption: SES encrypts the message before the put, and `GetObject` returns ciphertext until something with `kms:Decrypt` decrypts it. Do not turn that option on for this reference. The read-only CLI example would not see raw MIME.
+- Bucket default SSE-KMS is a third choice. S3 still decrypts during `GetObject`, but both SES (for `kms:GenerateDataKey*`) and the reader (for `kms:Decrypt`) need grants on that key. It is not the receipt-action message encryption feature. Encrypted SNS topics used with SES need a customer-managed key, because you cannot edit an AWS-managed key policy. Object Lock with a default retention period is not compatible with SES receipt to S3.
 - The model sees untrusted MIME inside delimiters. Instructions in the mail are not policy.
 - Do not log bodies, attachments, presigned URLs, or secrets. Routine logs carry the idempotency key, the role, the wake source, and the outcome.
 - Presigned URLs for a reviewer are minted at review time and are not stored as the durable pointer. The durable pointer is the bucket and key.
@@ -389,7 +394,7 @@ Rollback is the kill switch first (stops sends), then disabling the receipt rule
 | What you see | What to check |
 | --- | --- |
 | Nothing arrives | MX value and region, active rule set, domain verification, DNS propagation, a leftover Email Routing MX, SES block-list rejection |
-| No S3 object | Bucket policy `SourceArn`, region, KMS key policy, Object Lock default retention, encryption alias instead of key ARN |
+| No S3 object | Bucket policy `SourceArn`, region, Object Lock default retention. If you chose SSE-KMS or the receipt-action KMS option, also the key policy. SSE-S3 does not use that key. |
 | Duplicate drafts | Claim is not atomic or not outside the workspace, or the body was read before the claim |
 | Agent runs on a laptop | Move it to the managed Linux worker. The reference does not use an owner PC |
 | A quiet webhook | It may be dormant. Find the coordinator or peer that actually wakes the role |
@@ -431,6 +436,7 @@ What drives the bill:
 - Email Routing and SES MX do not share a hostname.
 - Artwork availability is your host's problem. The checker only sees the URL and the HTML.
 - Generalizing four roles does not predict the next inbox. Record new interviews on the blank template instead of editing these lessons from memory.
+- A green unit test run is a check of this repository. It is not production access, a live receipt rule, or permission to send.
 
 ## Getting started
 

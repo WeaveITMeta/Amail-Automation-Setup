@@ -35,6 +35,30 @@ Routing does not store the mailbox for your agent. A Worker on that path must wr
 
 Do not forward Email Routing into SES and also subscribe SES receipt on the same address. You will not get a clean single copy, and SPF will describe the forwarder rather than the original sender.
 
+## SNS to a Worker, one optional wake
+
+This is the SNS, queue, or Worker alternative. It is not required, and it is not SMTP receipt. The Worker sees an HTTPS POST from SNS after you subscribe the topic. Leave `RawMessageDelivery` unset so the body is the SNS envelope.
+
+```bash
+aws sns subscribe \
+  --topic-arn "$TOPIC_ARN" \
+  --protocol https \
+  --notification-endpoint "https://inbound.example.com/sns/ses" \
+  --region "$AWS_REGION" \
+  --profile "$AWS_PROFILE"
+```
+
+The adapter has to do these checks before it treats the body as a wake. [reference/sns_wake.py](../reference/sns_wake.py) is the tested form of the URL and topic checks. It does not fetch the certificate. The Worker still has to verify the signature.
+
+1. Read the JSON body. Do not follow a URL from the body until the host check below passes.
+2. If `Type` is `SubscriptionConfirmation`, fetch `SubscribeURL` only when `subscribe_url_ok` is true for the topic region. That pins the host to `sns.<region>.amazonaws.com`.
+3. If `Type` is `Notification`, require `SignatureVersion` `2`, `TopicArn` equal to the topic you created, and `SigningCertURL` passing `signing_cert_url_ok`.
+4. Build `string_to_sign` and verify `Signature` with the certificate at that URL. A present `Signature` field is not the verification.
+5. Parse `Message` as the SES receipt notification. Read `receipt.action.bucketName` and `receipt.action.objectKey` only when `type` is `S3`. Ignore any bucket name elsewhere in the JSON.
+6. Wake the role agent with that object reference. Do not put the MIME body on the queue, and do not log the notification's mail content.
+
+The minimal reference can stop at SQS and skip this Worker. Roles that do not use it do not need a Cloudflare route.
+
 ## Optional R2 and Access
 
 Artwork URLs can be HTTPS on a hostname that happens to be backed by R2. The skill checks the URL, not the vendor. Access can sit in front of a CRM API a role reads for context. A role with no CRM client does not configure Access. Neither product is on the mail path.

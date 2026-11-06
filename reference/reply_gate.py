@@ -10,6 +10,9 @@ from __future__ import annotations
 
 import re
 
+from reference.binding import addr_spec, approval_problem, template_problem
+from reference.send_ready import rendered_failures
+
 HUMAN = "human_review"
 SEND = "template_send"
 STOP = "do_not_send"
@@ -38,6 +41,40 @@ HARD_STOP_REASONS = frozenset(
         "test_or_notice",
         "suppression_or_opt_out",
         "noreply_sender",
+        "null_reverse_path",
+        "kill_switch_global",
+        "kill_switch_role",
+    }
+)
+
+# A person may release these outcomes by approving the exact outbound bytes.
+# Kill-switch and inbound hard stops are absent on purpose.
+HUMAN_CAN_RELEASE = frozenset(
+    {
+        "role_requires_human",
+        "rule_disabled",
+        "no_matching_rule",
+        "rubric_not_passed",
+        "audience_excluded",
+        "audience_not_authorized",
+        "follow_up",
+        "attachment_present",
+        "dmarc_not_passing",
+        "destination_not_authenticated",
+        "reply_to_misaligned",
+        "header_from_unauthenticated",
+        "freeform_body",
+        "mailing_list",
+        "recipient_count",
+        "prohibited_category",
+        "confidence_below_threshold",
+        "template_not_allowed",
+        "mode_not_template_only",
+        "rate_limited",
+        "rate_state_unavailable",
+        "rule_audiences_too_wide",
+        "rule_missing_follow_up_deny",
+        "spam",
     }
 )
 
@@ -53,6 +90,10 @@ REQUIRED_KEYS = (
     "sender_is_noreply",
     "reply_recipient_count",
     "dmarc_pass",
+    "header_from",
+    "envelope_mail_from",
+    "reply_to",
+    "auto_reply_destination",
     "has_attachment",
     "freeform_body",
     "is_follow_up",
@@ -113,17 +154,19 @@ def decide(request, policy, rate_state):
     auto = policy.get("auto_reply")
     kill = policy.get("kill_switch")
     if not isinstance(auto, dict) or not isinstance(kill, dict):
-        return _decision(HUMAN, ["policy_missing"])
+        return _decision(STOP, ["policy_missing"])
     if kill.get("global") is not False:
-        return _decision(HUMAN, ["kill_switch_global"])
+        return _decision(STOP, ["kill_switch_global"])
+    if _null_reverse_path(request.get("envelope_mail_from")):
+        return _decision(STOP, ["null_reverse_path"])
     if policy.get("default_outbound_mode") != "human_approval":
-        return _decision(HUMAN, ["policy_default_not_human"])
+        return _decision(STOP, ["policy_default_not_human"])
     if auto.get("require_rubric_pass") is not True:
-        return _decision(HUMAN, ["policy_rubric_gate_disabled"])
+        return _decision(STOP, ["policy_rubric_gate_disabled"])
     if auto.get("require_explicit_authorization") is not True:
-        return _decision(HUMAN, ["policy_explicit_auth_disabled"])
+        return _decision(STOP, ["policy_explicit_auth_disabled"])
     if auto.get("allow_freeform") is True:
-        return _decision(HUMAN, ["freeform_not_permitted"])
+        return _decision(STOP, ["freeform_not_permitted"])
 
     invalid = _validate_request(request)
     if invalid:
@@ -134,13 +177,13 @@ def decide(request, policy, rate_state):
     if role_kills is None:
         role_kills = {}
     if not isinstance(role_kills, dict):
-        return _decision(HUMAN, ["policy_missing"])
+        return _decision(STOP, ["policy_missing"])
     if role_kills.get(role) is True:
-        return _decision(HUMAN, ["kill_switch_role"])
+        return _decision(STOP, ["kill_switch_role"])
 
     human_only = auto.get("human_only_roles")
     if not isinstance(human_only, list) or any(not isinstance(item, str) for item in human_only):
-        return _decision(HUMAN, ["policy_missing"])
+        return _decision(STOP, ["policy_missing"])
     if role in human_only:
         return _decision(HUMAN, ["role_requires_human"])
 
@@ -150,8 +193,11 @@ def decide(request, policy, rate_state):
         return _decision(HUMAN, ["mailing_list"])
     if request["reply_recipient_count"] != 1:
         return _decision(HUMAN, ["recipient_count"])
-    if request["dmarc_pass"] is not True:
-        return _decision(HUMAN, ["dmarc_not_passing"])
+    destination_problem = _destination_problem(request)
+    if destination_problem == "null_reverse_path":
+        return _decision(STOP, ["null_reverse_path"])
+    if destination_problem:
+        return _decision(HUMAN, [destination_problem])
     if request["has_attachment"] is True:
         return _decision(HUMAN, ["attachment_present"])
     if request["prohibited_categories"]:
@@ -167,7 +213,7 @@ def decide(request, policy, rate_state):
 
     rules = auto.get("rules")
     if not isinstance(rules, list):
-        return _decision(HUMAN, ["policy_missing"])
+        return _decision(STOP, ["policy_missing"])
     rule = _matching_rule(rules, role, intent)
     if rule is None:
         return _decision(HUMAN, ["no_matching_rule"])
@@ -210,49 +256,56 @@ def decide(request, policy, rate_state):
     return _decision(SEND, ["explicit_rule_and_rubric"], request["template_id"])
 
 
-def human_send_allowed(approval):
-    """A person approved this exact rendered draft. Agents cannot approve."""
+def delivery_allowed(
+    *,
+    decision,
+    message,
+    approval=None,
+    consumed_approval_ids=(),
+    template_text=None,
+    template_html=None,
+    template_subject=None,
+    template_version=None,
+    template_variables=None,
+    allow_hosts=(),
+    required_assets=(),
+):
+    """Decide whether these exact bytes may be handed to SES.
 
-    if not isinstance(approval, dict):
-        return False
-    required = ("permission", "decision", "approver", "draft_id", "rendered_sha256")
-    if any(key not in approval for key in required):
-        return False
-    if approval["permission"] != "send" or approval["decision"] != "approved":
-        return False
-    if approval["approver"] != "person":
-        return False
-    if not isinstance(approval["draft_id"], str) or not approval["draft_id"]:
-        return False
-    digest = approval["rendered_sha256"]
-    if not isinstance(digest, str) or not digest.startswith("sha256:") or len(digest) < 12:
-        return False
-    return True
-
-
-def delivery_allowed(*, decision, approval, rendered_ok):
-    """Combine the gate, a human approval, and rendered-message checks.
-
-    Hard stops (duplicate, virus, test/notice, suppression, no-reply) stay
-    blocked when a person approval is present. Spam blocks the agent and can
-    still be released by a person. template_send does not need a person, and
-    it still requires the rendered checks.
+    `decide` chooses the policy outcome. This function checks that outcome
+    against the message. A kill switch stops human-approved sends as well as
+    template sends. Template sends must equal the trusted render. Human sends
+    must carry a digest of these bytes and an unused approval id. A chat
+    transcript is not an approval.
     """
 
-    if not isinstance(decision, dict) or rendered_ok is not True:
+    if not isinstance(decision, dict):
         return False
     reasons = decision.get("reasons")
-    if not isinstance(reasons, list):
+    if not isinstance(reasons, list) or HARD_STOP_REASONS.intersection(reasons):
         return False
-    if HARD_STOP_REASONS.intersection(reasons):
+    if rendered_failures(message, allow_hosts=allow_hosts, required_assets=required_assets):
         return False
     action = decision.get("action")
     if action == SEND:
-        return reasons == ["explicit_rule_and_rubric"] and bool(decision.get("template_id"))
-    if action == HUMAN and human_send_allowed(approval):
-        return True
-    if action == STOP and reasons == ["spam"] and human_send_allowed(approval):
-        return True
+        if reasons != ["explicit_rule_and_rubric"] or not decision.get("template_id"):
+            return False
+        return (
+            template_problem(
+                message,
+                text_source=template_text,
+                html_source=template_html,
+                subject=template_subject,
+                version=template_version,
+                variables=template_variables,
+                template_id=decision["template_id"],
+            )
+            is None
+        )
+    if not (len(reasons) == 1 and reasons[0] in HUMAN_CAN_RELEASE):
+        return False
+    if action == HUMAN or (action == STOP and reasons == ["spam"]):
+        return approval_problem(message, approval, consumed_approval_ids) is None
     return False
 
 
@@ -287,6 +340,50 @@ def _rate_limit(limits, rate_state):
     return None
 
 
+def _null_reverse_path(value):
+    return isinstance(value, str) and value.strip().lower() in {"", "<>"}
+
+
+def _destination_problem(request):
+    """Auto-reply only to the single DMARC-authenticated header From address.
+
+    DMARC evaluates the header From domain. The envelope MAIL FROM can be a
+    different bounce domain, or `<>` for a delivery status. Neither of those
+    is the reply destination. A Reply-To that disagrees with header From is
+    not used automatically.
+    """
+
+    if _null_reverse_path(request.get("envelope_mail_from")):
+        return "null_reverse_path"
+    header_from = request.get("header_from")
+    if not isinstance(header_from, list) or len(header_from) != 1:
+        return "header_from_unauthenticated"
+    try:
+        authenticated = _addr(header_from[0])
+        destination = _addr(request.get("auto_reply_destination"))
+    except ValueError:
+        return "header_from_unauthenticated"
+    if destination != authenticated:
+        return "destination_not_authenticated"
+    reply_to = request.get("reply_to")
+    if not isinstance(reply_to, list):
+        return "header_from_unauthenticated"
+    if reply_to:
+        try:
+            reply_addrs = [_addr(item) for item in reply_to]
+        except ValueError:
+            return "reply_to_misaligned"
+        if reply_addrs != [authenticated]:
+            return "reply_to_misaligned"
+    if request.get("dmarc_pass") is not True:
+        return "dmarc_not_passing"
+    return None
+
+
+def _addr(value):
+    return addr_spec(value)
+
+
 def _validate_request(request):
     for key in REQUIRED_KEYS:
         if key not in request:
@@ -294,6 +391,12 @@ def _validate_request(request):
     for key in BOOL_KEYS:
         if not isinstance(request[key], bool):
             return "request_invalid"
+    if not isinstance(request["header_from"], list) or not isinstance(request["reply_to"], list):
+        return "request_invalid"
+    if not isinstance(request["envelope_mail_from"], str) or not isinstance(request["auto_reply_destination"], str):
+        return "request_invalid"
+    if any(not isinstance(item, str) for item in request["header_from"] + request["reply_to"]):
+        return "request_invalid"
     categories = request["prohibited_categories"]
     if not isinstance(categories, list) or any(not isinstance(item, str) or not item for item in categories):
         return "request_invalid"

@@ -18,8 +18,12 @@ It records one observed grant:
 
 Sales, support, and projects remain in `human_only_roles` in that file, matching the interview: those roles had no auto-reply permission.
 
-A person approves a rendered draft by writing an approval record with `approver` equal to `person` and `permission` equal to `send`. The sender checks that record for the human path. The automatic path never reads an approval the model wrote. It calls `decide` with the operator policy.
+A person approves one rendered draft. The review tool stores `payload_sha256` for that draft's From, recipients, subject, text, HTML, template id, and template version, plus a single-use `approval_id`. The sender recomputes the digest. A chat transcript is not an input to that check.
 
-Hard stops ignore a person approval: duplicates, virus failures, tests, notices, suppression, opt-out, and no-reply senders. Those do not get a reply from this sender.
+The automatic path does not read an approval the model wrote. It calls `decide`, then `delivery_allowed`, which requires the outbound subject, text, and HTML to equal the trusted template. Supplied template ids are not enough.
+
+The kill switch is an unconditional stop. A stored approval does not override it. The same is true for duplicates, virus failures, tests, notices, suppression, opt-out, no-reply senders, and a null reverse path.
+
+DMARC authenticates the header From. The automatic destination is that address. The envelope MAIL FROM is not a reply target, including when it is `<>`.
 
 The fictional Hello body says a person will review the inquiry and states no price or partnership. If an owner's real first reply says something else, they replace the template in their own policy change and review the new HTML. They do not paste a live message into this repo.

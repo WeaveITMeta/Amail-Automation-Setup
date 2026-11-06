@@ -14,7 +14,7 @@ JSON sketches: [reader](../examples/iam/reader-role.example.json), [sender](../e
 
 The worker also checks that the key it fetches equals the key on the wake. A bucket or key mentioned inside the MIME is ignored. See `reference/object_ref.py`.
 
-Encryption at rest is on for the bucket and for the handled-key store. TLS is required for the put, which the example bucket policy denies when `aws:SecureTransport` is false. Customer-managed keys follow the SES key-policy notes in the README. Do not enable S3 Object Lock default retention on a bucket SES writes; AWS documents that combination as unsupported.
+The minimal bucket uses SSE-S3. TLS is required for the put, which the example bucket policy denies when `aws:SecureTransport` is false. SSE-S3 means `GetObject` returns the MIME object. The receipt rule's KMS "encrypt message" setting is a different feature: SES encrypts the body before upload, and the reader must decrypt with `kms:Decrypt` before the bytes are MIME. Leave that setting off in this reference. Bucket-default SSE-KMS is also different: S3 decrypts on read, and both SES and the reader need key grants. Do not enable S3 Object Lock default retention on a bucket SES writes. AWS documents that combination as unsupported.
 
 Logs and drafts:
 

@@ -1,0 +1,8 @@
+Hello,
+
+Thank you for writing to {{organization}}. We received your message at {{role_display}} and a person will review the inquiry.
+
+This reply does not confirm availability, pricing, partnership, or any other decision.
+
+{{organization}}
+https://assets.example.com/email/hello/mark.png

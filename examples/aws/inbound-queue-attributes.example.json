@@ -1,0 +1,5 @@
+{
+  "MessageRetentionPeriod": "345600",
+  "VisibilityTimeout": "120",
+  "RedrivePolicy": "{\"deadLetterTargetArn\":\"arn:aws:sqs:REGION:EXAMPLE_ACCOUNT_ID:example-inbound-dlq\",\"maxReceiveCount\":\"5\"}"
+}

@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/ses-receipt-notification.schema.json",
+  "title": "SES receipt notification subset",
+  "description": "Documentation subset of an S3 receipt notification. It is not the full AWS schema. The email body is absent because the S3 action notification carries a pointer.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["notificationType", "mail", "receipt"],
+  "properties": {
+    "notificationType": {"type": "string", "const": "Received"},
+    "mail": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["timestamp", "source", "messageId", "destination", "commonHeaders"],
+      "properties": {
+        "timestamp": {"type": "string"},
+        "source": {"type": "string"},
+        "messageId": {"type": "string"},
+        "destination": {"type": "array", "items": {"type": "string"}},
+        "commonHeaders": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["from", "to", "subject", "messageId"],
+          "properties": {
+            "from": {"type": "array", "items": {"type": "string"}},
+            "to": {"type": "array", "items": {"type": "string"}},
+            "subject": {"type": "string"},
+            "messageId": {"type": "string"}
+          }
+        }
+      }
+    },
+    "receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["recipients", "spamVerdict", "virusVerdict", "dmarcVerdict", "action"],
+      "properties": {
+        "recipients": {"type": "array", "items": {"type": "string"}},
+        "spamVerdict": {"type": "object", "required": ["status"], "properties": {"status": {"type": "string"}}},
+        "virusVerdict": {"type": "object", "required": ["status"], "properties": {"status": {"type": "string"}}},
+        "dmarcVerdict": {"type": "object", "required": ["status"], "properties": {"status": {"type": "string"}}},
+        "action": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "bucketName", "objectKey"],
+          "properties": {
+            "type": {"type": "string", "const": "S3"},
+            "bucketName": {"type": "string"},
+            "objectKey": {"type": "string"}
+          }
+        }
+      }
+    }
+  }
+}

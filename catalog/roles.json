@@ -1,0 +1,402 @@
+[
+  {
+    "slug": "sales",
+    "title": "Sales",
+    "address": "sales@example.com",
+    "summary": "New business inquiries, demos, and quote requests.",
+    "skill": "Job/sales/SKILL.md",
+    "default_external_send": "human_approval",
+    "default_auto_send": false,
+    "artwork_example_url": "https://assets.example.com/email/sales/mark.png"
+  },
+  {
+    "slug": "support",
+    "title": "Support",
+    "address": "support@example.com",
+    "summary": "Help for people already using an ACME product.",
+    "skill": "Job/support/SKILL.md",
+    "default_external_send": "human_approval",
+    "default_auto_send": false,
+    "artwork_example_url": "https://assets.example.com/email/support/mark.png"
+  },
+  {
+    "slug": "projects",
+    "title": "Projects",
+    "address": "projects@example.com",
+    "summary": "Status and coordination for an in-flight ACME delivery.",
+    "skill": "Job/projects/SKILL.md",
+    "default_external_send": "human_approval",
+    "default_auto_send": false,
+    "artwork_example_url": "https://assets.example.com/email/projects/mark.png"
+  },
+  {
+    "slug": "hello",
+    "title": "Hello",
+    "address": "hello@example.com",
+    "summary": "Front door for general ACME mail and first-stop routing.",
+    "skill": "Job/hello/SKILL.md",
+    "default_external_send": "human_approval",
+    "default_auto_send": false,
+    "artwork_example_url": "https://assets.example.com/email/hello/mark.png"
+  },
+  {
+    "slug": "billing",
+    "title": "Billing",
+    "address": "billing@example.com",
+    "summary": "Customer invoices, charges, receipts, and billing contacts.",
+    "skill": "Job/billing/SKILL.md",
+    "default_external_send": "human_approval",
+    "default_auto_send": false,
+    "artwork_example_url": "https://assets.example.com/email/billing/mark.png"
+  },
+  {
+    "slug": "recruiting",
+    "title": "Recruiting",
+    "address": "recruiting@example.com",
+    "summary": "Candidates and applications.",
+    "skill": "Job/recruiting/SKILL.md",
+    "default_external_send": "human_approval",
+    "default_auto_send": false,
+    "artwork_example_url": "https://assets.example.com/email/recruiting/mark.png"
+  },
+  {
+    "slug": "hr",
+    "title": "HR",
+    "address": "hr@example.com",
+    "summary": "Employee-relations intake.",
+    "skill": "Job/hr/SKILL.md",
+    "default_external_send": "human_approval",
+    "default_auto_send": false,
+    "artwork_example_url": "https://assets.example.com/email/hr/mark.png"
+  },
+  {
+    "slug": "partnerships",
+    "title": "Partnerships",
+    "address": "partnerships@example.com",
+    "summary": "Commercial partnership inquiries.",
+    "skill": "Job/partnerships/SKILL.md",
+    "default_external_send": "human_approval",
+    "default_auto_send": false,
+    "artwork_example_url": "https://assets.example.com/email/partnerships/mark.png"
+  },
+  {
+    "slug": "press",
+    "title": "Press",
+    "address": "press@example.com",
+    "summary": "Journalists and media requests.",
+    "skill": "Job/press/SKILL.md",
+    "default_external_send": "human_approval",
+    "default_auto_send": false,
+    "artwork_example_url": "https://assets.example.com/email/press/mark.png"
+  },
+  {
+    "slug": "customer-onboarding",
+    "title": "Customer onboarding",
+    "address": "onboarding@example.com",
+    "summary": "Kickoff and access checklists for a new ACME customer.",
+    "skill": "Job/customer-onboarding/SKILL.md",
+    "default_external_send": "human_approval",
+    "default_auto_send": false,
+    "artwork_example_url": "https://assets.example.com/email/onboarding/mark.png"
+  },
+  {
+    "slug": "customer-success",
+    "title": "Customer success",
+    "address": "customer-success@example.com",
+    "summary": "Adoption and relationship health after go-live.",
+    "skill": "Job/customer-success/SKILL.md",
+    "default_external_send": "human_approval",
+    "default_auto_send": false,
+    "artwork_example_url": "https://assets.example.com/email/customer-success/mark.png"
+  },
+  {
+    "slug": "security",
+    "title": "Security",
+    "address": "security@example.com",
+    "summary": "Vulnerability reports and security questions.",
+    "skill": "Job/security/SKILL.md",
+    "default_external_send": "human_approval",
+    "default_auto_send": false,
+    "artwork_example_url": "https://assets.example.com/email/security/mark.png"
+  },
+  {
+    "slug": "privacy",
+    "title": "Privacy",
+    "address": "privacy@example.com",
+    "summary": "Privacy questions and data-subject request intake.",
+    "skill": "Job/privacy/SKILL.md",
+    "default_external_send": "human_approval",
+    "default_auto_send": false,
+    "artwork_example_url": "https://assets.example.com/email/privacy/mark.png"
+  },
+  {
+    "slug": "legal-intake",
+    "title": "Legal intake",
+    "address": "legal@example.com",
+    "summary": "Notices, counsel, contracts, and legal demands.",
+    "skill": "Job/legal-intake/SKILL.md",
+    "default_external_send": "human_approval",
+    "default_auto_send": false,
+    "artwork_example_url": "https://assets.example.com/email/legal/mark.png"
+  },
+  {
+    "slug": "finance",
+    "title": "Finance",
+    "address": "finance@example.com",
+    "summary": "Accounts payable, tax forms, and company financial inquiries.",
+    "skill": "Job/finance/SKILL.md",
+    "default_external_send": "human_approval",
+    "default_auto_send": false,
+    "artwork_example_url": "https://assets.example.com/email/finance/mark.png"
+  },
+  {
+    "slug": "procurement",
+    "title": "Procurement",
+    "address": "procurement@example.com",
+    "summary": "Purchase orders and buying from suppliers.",
+    "skill": "Job/procurement/SKILL.md",
+    "default_external_send": "human_approval",
+    "default_auto_send": false,
+    "artwork_example_url": "https://assets.example.com/email/procurement/mark.png"
+  },
+  {
+    "slug": "operations",
+    "title": "Operations",
+    "address": "operations@example.com",
+    "summary": "Cross-team operational coordination that is not a customer project or a facilities ticket.",
+    "skill": "Job/operations/SKILL.md",
+    "default_external_send": "human_approval",
+    "default_auto_send": false,
+    "artwork_example_url": "https://assets.example.com/email/operations/mark.png"
+  },
+  {
+    "slug": "it-helpdesk",
+    "title": "IT helpdesk",
+    "address": "helpdesk@example.com",
+    "summary": "Employee technology support.",
+    "skill": "Job/it-helpdesk/SKILL.md",
+    "default_external_send": "human_approval",
+    "default_auto_send": false,
+    "artwork_example_url": "https://assets.example.com/email/it-helpdesk/mark.png"
+  },
+  {
+    "slug": "engineering",
+    "title": "Engineering",
+    "address": "engineering@example.com",
+    "summary": "Product defects that need an engineering owner.",
+    "skill": "Job/engineering/SKILL.md",
+    "default_external_send": "human_approval",
+    "default_auto_send": false,
+    "artwork_example_url": "https://assets.example.com/email/engineering/mark.png"
+  },
+  {
+    "slug": "product-feedback",
+    "title": "Product feedback",
+    "address": "feedback@example.com",
+    "summary": "Suggestions and product ideas.",
+    "skill": "Job/product-feedback/SKILL.md",
+    "default_external_send": "human_approval",
+    "default_auto_send": false,
+    "artwork_example_url": "https://assets.example.com/email/product-feedback/mark.png"
+  },
+  {
+    "slug": "returns",
+    "title": "Returns",
+    "address": "returns@example.com",
+    "summary": "Return merchandise authorization intake.",
+    "skill": "Job/returns/SKILL.md",
+    "default_external_send": "human_approval",
+    "default_auto_send": false,
+    "artwork_example_url": "https://assets.example.com/email/returns/mark.png"
+  },
+  {
+    "slug": "shipping",
+    "title": "Shipping",
+    "address": "shipping@example.com",
+    "summary": "Delivery and address questions.",
+    "skill": "Job/shipping/SKILL.md",
+    "default_external_send": "human_approval",
+    "default_auto_send": false,
+    "artwork_example_url": "https://assets.example.com/email/shipping/mark.png"
+  },
+  {
+    "slug": "events",
+    "title": "Events",
+    "address": "events@example.com",
+    "summary": "Questions about ACME events.",
+    "skill": "Job/events/SKILL.md",
+    "default_external_send": "human_approval",
+    "default_auto_send": false,
+    "artwork_example_url": "https://assets.example.com/email/events/mark.png"
+  },
+  {
+    "slug": "community",
+    "title": "Community",
+    "address": "community@example.com",
+    "summary": "Community programs and user groups.",
+    "skill": "Job/community/SKILL.md",
+    "default_external_send": "human_approval",
+    "default_auto_send": false,
+    "artwork_example_url": "https://assets.example.com/email/community/mark.png"
+  },
+  {
+    "slug": "vendor-management",
+    "title": "Vendor management",
+    "address": "vendors@example.com",
+    "summary": "Performance of vendors ACME already uses.",
+    "skill": "Job/vendor-management/SKILL.md",
+    "default_external_send": "human_approval",
+    "default_auto_send": false,
+    "artwork_example_url": "https://assets.example.com/email/vendor-management/mark.png"
+  },
+  {
+    "slug": "executive-office",
+    "title": "Executive office",
+    "address": "office@example.com",
+    "summary": "Mail addressed to ACME leadership aliases.",
+    "skill": "Job/executive-office/SKILL.md",
+    "default_external_send": "human_approval",
+    "default_auto_send": false,
+    "artwork_example_url": "https://assets.example.com/email/executive-office/mark.png"
+  },
+  {
+    "slug": "compliance",
+    "title": "Compliance",
+    "address": "compliance@example.com",
+    "summary": "Regulatory questions and audit-evidence intake.",
+    "skill": "Job/compliance/SKILL.md",
+    "default_external_send": "human_approval",
+    "default_auto_send": false,
+    "artwork_example_url": "https://assets.example.com/email/compliance/mark.png"
+  },
+  {
+    "slug": "quality-assurance",
+    "title": "Quality assurance",
+    "address": "quality@example.com",
+    "summary": "Quality escapes and corrective-action intake.",
+    "skill": "Job/quality-assurance/SKILL.md",
+    "default_external_send": "human_approval",
+    "default_auto_send": false,
+    "artwork_example_url": "https://assets.example.com/email/quality/mark.png"
+  },
+  {
+    "slug": "documentation",
+    "title": "Documentation",
+    "address": "docs@example.com",
+    "summary": "Corrections and requests about ACME docs.",
+    "skill": "Job/documentation/SKILL.md",
+    "default_external_send": "human_approval",
+    "default_auto_send": false,
+    "artwork_example_url": "https://assets.example.com/email/documentation/mark.png"
+  },
+  {
+    "slug": "training",
+    "title": "Training",
+    "address": "training@example.com",
+    "summary": "Training questions. Enrollment is a commitment.",
+    "skill": "Job/training/SKILL.md",
+    "default_external_send": "human_approval",
+    "default_auto_send": false,
+    "artwork_example_url": "https://assets.example.com/email/training/mark.png"
+  },
+  {
+    "slug": "facilities",
+    "title": "Facilities",
+    "address": "facilities@example.com",
+    "summary": "Workplaces, badges, and physical access.",
+    "skill": "Job/facilities/SKILL.md",
+    "default_external_send": "human_approval",
+    "default_auto_send": false,
+    "artwork_example_url": "https://assets.example.com/email/facilities/mark.png"
+  },
+  {
+    "slug": "travel",
+    "title": "Travel",
+    "address": "travel@example.com",
+    "summary": "Itinerary questions. No booking changes.",
+    "skill": "Job/travel/SKILL.md",
+    "default_external_send": "human_approval",
+    "default_auto_send": false,
+    "artwork_example_url": "https://assets.example.com/email/travel/mark.png"
+  },
+  {
+    "slug": "investor-relations",
+    "title": "Investor relations",
+    "address": "investors@example.com",
+    "summary": "Investor and analyst inquiries.",
+    "skill": "Job/investor-relations/SKILL.md",
+    "default_external_send": "human_approval",
+    "default_auto_send": false,
+    "artwork_example_url": "https://assets.example.com/email/investor-relations/mark.png"
+  },
+  {
+    "slug": "renewals",
+    "title": "Renewals",
+    "address": "renewals@example.com",
+    "summary": "Commercial renewal inquiries.",
+    "skill": "Job/renewals/SKILL.md",
+    "default_external_send": "human_approval",
+    "default_auto_send": false,
+    "artwork_example_url": "https://assets.example.com/email/renewals/mark.png"
+  },
+  {
+    "slug": "developer-relations",
+    "title": "Developer relations",
+    "address": "developers@example.com",
+    "summary": "External developer audience, APIs, and SDKs.",
+    "skill": "Job/developer-relations/SKILL.md",
+    "default_external_send": "human_approval",
+    "default_auto_send": false,
+    "artwork_example_url": "https://assets.example.com/email/developer-relations/mark.png"
+  },
+  {
+    "slug": "trust-and-safety",
+    "title": "Trust and safety",
+    "address": "trust@example.com",
+    "summary": "Abuse and misuse reports.",
+    "skill": "Job/trust-and-safety/SKILL.md",
+    "default_external_send": "human_approval",
+    "default_auto_send": false,
+    "artwork_example_url": "https://assets.example.com/email/trust/mark.png"
+  },
+  {
+    "slug": "accessibility",
+    "title": "Accessibility",
+    "address": "accessibility@example.com",
+    "summary": "Product and service accessibility requests.",
+    "skill": "Job/accessibility/SKILL.md",
+    "default_external_send": "human_approval",
+    "default_auto_send": false,
+    "artwork_example_url": "https://assets.example.com/email/accessibility/mark.png"
+  },
+  {
+    "slug": "ethics",
+    "title": "Ethics",
+    "address": "ethics@example.com",
+    "summary": "Ethics and whistleblower intake.",
+    "skill": "Job/ethics/SKILL.md",
+    "default_external_send": "human_approval",
+    "default_auto_send": false,
+    "artwork_example_url": "https://assets.example.com/email/ethics/mark.png"
+  },
+  {
+    "slug": "marketing",
+    "title": "Marketing",
+    "address": "marketing@example.com",
+    "summary": "Brand, campaigns, and co-marketing.",
+    "skill": "Job/marketing/SKILL.md",
+    "default_external_send": "human_approval",
+    "default_auto_send": false,
+    "artwork_example_url": "https://assets.example.com/email/marketing/mark.png"
+  },
+  {
+    "slug": "warranty",
+    "title": "Warranty",
+    "address": "warranty@example.com",
+    "summary": "Warranty claim intake.",
+    "skill": "Job/warranty/SKILL.md",
+    "default_external_send": "human_approval",
+    "default_auto_send": false,
+    "artwork_example_url": "https://assets.example.com/email/warranty/mark.png"
+  }
+]

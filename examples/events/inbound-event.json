@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "idempotency_key": "EXAMPLE_SES_MESSAGE_ID",
+  "ingress": "ses_s3",
+  "wake_source": "coordinator_fanout",
+  "received_at": "2026-11-06T00:00:01Z",
+  "raw_mail": {
+    "bucket": "example-com-inbound-mail",
+    "object_key": "raw/EXAMPLE_OBJECT_KEY",
+    "access": "read_only"
+  },
+  "envelope": {
+    "mail_from": "pat@example.net",
+    "recipients": ["hello@example.com"]
+  },
+  "headers": {
+    "from": "Pat Lee <pat@example.net>",
+    "to": ["hello@example.com"],
+    "subject": "Question about ACME",
+    "message_id": "<example-message@example.net>",
+    "auto_submitted": ""
+  },
+  "verdicts": {
+    "spam": "PASS",
+    "virus": "PASS",
+    "spf": "PASS",
+    "dkim": "PASS",
+    "dmarc": "PASS"
+  }
+}

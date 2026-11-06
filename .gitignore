@@ -1,0 +1,9 @@
+.env
+.env.*
+.aws/
+*.pem
+*.key
+__pycache__/
+.venv/
+.pytest_cache/
+*.eml.local

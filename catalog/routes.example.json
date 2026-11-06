@@ -1,0 +1,209 @@
+{
+  "version": 1,
+  "domain": "example.com",
+  "default_on_unknown": "quarantine_for_human",
+  "unknown_role": "hello",
+  "note": "Unknown recipients can be shown to a person through the Hello skill as an internal routing report. They are not an automatic external reply.",
+  "routes": [
+    {
+      "address": "sales@example.com",
+      "role": "sales",
+      "skill": "Job/sales/SKILL.md"
+    },
+    {
+      "address": "support@example.com",
+      "role": "support",
+      "skill": "Job/support/SKILL.md"
+    },
+    {
+      "address": "projects@example.com",
+      "role": "projects",
+      "skill": "Job/projects/SKILL.md"
+    },
+    {
+      "address": "hello@example.com",
+      "role": "hello",
+      "skill": "Job/hello/SKILL.md"
+    },
+    {
+      "address": "billing@example.com",
+      "role": "billing",
+      "skill": "Job/billing/SKILL.md"
+    },
+    {
+      "address": "recruiting@example.com",
+      "role": "recruiting",
+      "skill": "Job/recruiting/SKILL.md"
+    },
+    {
+      "address": "hr@example.com",
+      "role": "hr",
+      "skill": "Job/hr/SKILL.md"
+    },
+    {
+      "address": "partnerships@example.com",
+      "role": "partnerships",
+      "skill": "Job/partnerships/SKILL.md"
+    },
+    {
+      "address": "press@example.com",
+      "role": "press",
+      "skill": "Job/press/SKILL.md"
+    },
+    {
+      "address": "onboarding@example.com",
+      "role": "customer-onboarding",
+      "skill": "Job/customer-onboarding/SKILL.md"
+    },
+    {
+      "address": "customer-success@example.com",
+      "role": "customer-success",
+      "skill": "Job/customer-success/SKILL.md"
+    },
+    {
+      "address": "security@example.com",
+      "role": "security",
+      "skill": "Job/security/SKILL.md"
+    },
+    {
+      "address": "privacy@example.com",
+      "role": "privacy",
+      "skill": "Job/privacy/SKILL.md"
+    },
+    {
+      "address": "legal@example.com",
+      "role": "legal-intake",
+      "skill": "Job/legal-intake/SKILL.md"
+    },
+    {
+      "address": "finance@example.com",
+      "role": "finance",
+      "skill": "Job/finance/SKILL.md"
+    },
+    {
+      "address": "procurement@example.com",
+      "role": "procurement",
+      "skill": "Job/procurement/SKILL.md"
+    },
+    {
+      "address": "operations@example.com",
+      "role": "operations",
+      "skill": "Job/operations/SKILL.md"
+    },
+    {
+      "address": "helpdesk@example.com",
+      "role": "it-helpdesk",
+      "skill": "Job/it-helpdesk/SKILL.md"
+    },
+    {
+      "address": "engineering@example.com",
+      "role": "engineering",
+      "skill": "Job/engineering/SKILL.md"
+    },
+    {
+      "address": "feedback@example.com",
+      "role": "product-feedback",
+      "skill": "Job/product-feedback/SKILL.md"
+    },
+    {
+      "address": "returns@example.com",
+      "role": "returns",
+      "skill": "Job/returns/SKILL.md"
+    },
+    {
+      "address": "shipping@example.com",
+      "role": "shipping",
+      "skill": "Job/shipping/SKILL.md"
+    },
+    {
+      "address": "events@example.com",
+      "role": "events",
+      "skill": "Job/events/SKILL.md"
+    },
+    {
+      "address": "community@example.com",
+      "role": "community",
+      "skill": "Job/community/SKILL.md"
+    },
+    {
+      "address": "vendors@example.com",
+      "role": "vendor-management",
+      "skill": "Job/vendor-management/SKILL.md"
+    },
+    {
+      "address": "office@example.com",
+      "role": "executive-office",
+      "skill": "Job/executive-office/SKILL.md"
+    },
+    {
+      "address": "compliance@example.com",
+      "role": "compliance",
+      "skill": "Job/compliance/SKILL.md"
+    },
+    {
+      "address": "quality@example.com",
+      "role": "quality-assurance",
+      "skill": "Job/quality-assurance/SKILL.md"
+    },
+    {
+      "address": "docs@example.com",
+      "role": "documentation",
+      "skill": "Job/documentation/SKILL.md"
+    },
+    {
+      "address": "training@example.com",
+      "role": "training",
+      "skill": "Job/training/SKILL.md"
+    },
+    {
+      "address": "facilities@example.com",
+      "role": "facilities",
+      "skill": "Job/facilities/SKILL.md"
+    },
+    {
+      "address": "travel@example.com",
+      "role": "travel",
+      "skill": "Job/travel/SKILL.md"
+    },
+    {
+      "address": "investors@example.com",
+      "role": "investor-relations",
+      "skill": "Job/investor-relations/SKILL.md"
+    },
+    {
+      "address": "renewals@example.com",
+      "role": "renewals",
+      "skill": "Job/renewals/SKILL.md"
+    },
+    {
+      "address": "developers@example.com",
+      "role": "developer-relations",
+      "skill": "Job/developer-relations/SKILL.md"
+    },
+    {
+      "address": "trust@example.com",
+      "role": "trust-and-safety",
+      "skill": "Job/trust-and-safety/SKILL.md"
+    },
+    {
+      "address": "accessibility@example.com",
+      "role": "accessibility",
+      "skill": "Job/accessibility/SKILL.md"
+    },
+    {
+      "address": "ethics@example.com",
+      "role": "ethics",
+      "skill": "Job/ethics/SKILL.md"
+    },
+    {
+      "address": "marketing@example.com",
+      "role": "marketing",
+      "skill": "Job/marketing/SKILL.md"
+    },
+    {
+      "address": "warranty@example.com",
+      "role": "warranty",
+      "skill": "Job/warranty/SKILL.md"
+    }
+  ]
+}

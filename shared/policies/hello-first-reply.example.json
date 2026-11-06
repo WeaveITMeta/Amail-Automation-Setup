@@ -1,0 +1,101 @@
+{
+  "version": 1,
+  "default_outbound_mode": "human_approval",
+  "kill_switch": {
+    "global": true,
+    "roles": {}
+  },
+  "auto_reply": {
+    "require_rubric_pass": true,
+    "require_explicit_authorization": true,
+    "allow_freeform": false,
+    "min_confidence": 0.95,
+    "rate_limits": {
+      "per_role_per_hour": 20,
+      "per_sender_per_day": 3,
+      "per_recipient_address_per_hour": 30
+    },
+    "human_only_roles": [
+      "sales",
+      "support",
+      "projects",
+      "billing",
+      "recruiting",
+      "hr",
+      "partnerships",
+      "press",
+      "customer-onboarding",
+      "customer-success",
+      "security",
+      "privacy",
+      "legal-intake",
+      "finance",
+      "procurement",
+      "operations",
+      "it-helpdesk",
+      "engineering",
+      "product-feedback",
+      "returns",
+      "shipping",
+      "events",
+      "community",
+      "vendor-management",
+      "executive-office",
+      "compliance",
+      "quality-assurance",
+      "documentation",
+      "training",
+      "facilities",
+      "travel",
+      "investor-relations",
+      "renewals",
+      "developer-relations",
+      "trust-and-safety",
+      "accessibility",
+      "ethics",
+      "marketing",
+      "warranty"
+    ],
+    "rules": [
+      {
+        "id": "hello-first-inquiry-example",
+        "role": "hello",
+        "intent": "first_reply_new_inquiry",
+        "enabled": false,
+        "mode": "template_only",
+        "templates": [
+          "hello-first-inquiry"
+        ],
+        "template_version": "1",
+        "from_address": "hello@example.com",
+        "allow_audiences": [
+          "new_inquiry",
+          "routing"
+        ],
+        "deny_if_follow_up": true,
+        "notes": "Disabled shape of one observed owner grant. Not the library default."
+      }
+    ]
+  },
+  "disclaimer": "NOT THE DEFAULT. Sanitized shape of an owner-granted Hello exception observed in one multi-role deployment. The rule is disabled and the kill switch is on, so this file authorizes no send. Sales, support, and projects remain human-only. A rubric pass does not enable the rule.",
+  "observed_example": {
+    "source": "sanitized interviews of one four-role deployment",
+    "sales": "human_approval_every_external_send",
+    "support": "human_approval_every_external_send",
+    "projects": "human_approval_every_external_send",
+    "hello": "narrow_first_reply_exception_for_new_inquiry_or_routing_only",
+    "hello_exclusions": [
+      "follow_up",
+      "partner",
+      "press",
+      "vendor",
+      "personal",
+      "legal",
+      "financial",
+      "government",
+      "spam",
+      "no_reply"
+    ]
+  },
+  "name": "observed-hello-first-reply-disabled"
+}

@@ -1,0 +1,31 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowSESPuts",
+      "Effect": "Allow",
+      "Principal": {"Service": "ses.amazonaws.com"},
+      "Action": "s3:PutObject",
+      "Resource": "arn:aws:s3:::example-com-inbound-mail/raw/*",
+      "Condition": {
+        "StringEquals": {
+          "AWS:SourceAccount": "EXAMPLE_ACCOUNT_ID",
+          "AWS:SourceArn": "arn:aws:ses:REGION:EXAMPLE_ACCOUNT_ID:receipt-rule-set/acme-inbound:receipt-rule/acme-store-and-notify"
+        }
+      }
+    },
+    {
+      "Sid": "DenyInsecureTransport",
+      "Effect": "Deny",
+      "Principal": "*",
+      "Action": "s3:*",
+      "Resource": [
+        "arn:aws:s3:::example-com-inbound-mail",
+        "arn:aws:s3:::example-com-inbound-mail/*"
+      ],
+      "Condition": {
+        "Bool": {"aws:SecureTransport": "false"}
+      }
+    }
+  ]
+}

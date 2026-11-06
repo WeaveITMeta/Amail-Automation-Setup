@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "default_outbound_mode": "human_approval",
+  "kill_switch": {
+    "global": true,
+    "roles": {}
+  },
+  "auto_reply": {
+    "require_rubric_pass": true,
+    "require_explicit_authorization": true,
+    "allow_freeform": false,
+    "min_confidence": 0.95,
+    "rate_limits": {
+      "per_role_per_hour": 20,
+      "per_sender_per_day": 3,
+      "per_recipient_address_per_hour": 30
+    },
+    "human_only_roles": [
+      "sales",
+      "support",
+      "projects",
+      "hello",
+      "billing",
+      "recruiting",
+      "hr",
+      "partnerships",
+      "press",
+      "customer-onboarding",
+      "customer-success",
+      "security",
+      "privacy",
+      "legal-intake",
+      "finance",
+      "procurement",
+      "operations",
+      "it-helpdesk",
+      "engineering",
+      "product-feedback",
+      "returns",
+      "shipping",
+      "events",
+      "community",
+      "vendor-management",
+      "executive-office",
+      "compliance",
+      "quality-assurance",
+      "documentation",
+      "training",
+      "facilities",
+      "travel",
+      "investor-relations",
+      "renewals",
+      "developer-relations",
+      "trust-and-safety",
+      "accessibility",
+      "ethics",
+      "marketing",
+      "warranty"
+    ],
+    "rules": []
+  },
+  "name": "acme-default-human-approval"
+}

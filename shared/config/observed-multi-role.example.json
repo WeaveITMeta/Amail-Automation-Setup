@@ -1,0 +1,33 @@
+{
+  "name": "observed-multi-role-profile",
+  "disclaimer": "Sanitized observation from one deployment. Reusable guidance is in acme.example.json and the default human-approval policy. Do not treat this file as the required shape of every inbox.",
+  "roles_observed": ["sales", "support", "projects", "hello"],
+  "common": {
+    "raw_mime": "s3-object",
+    "wake_payload": "object-reference",
+    "worker": "managed-linux",
+    "read": "read-only-aws-cli-get-object",
+    "polling": false,
+    "owner_pc": false,
+    "handled_state": "append-only-key",
+    "skill_load": "catalog-before-handling",
+    "triage": "automatic-internal",
+    "artwork": "public-https-checked-before-send-ready-review"
+  },
+  "recommended_not_established_for_every_role": {
+    "sender": "A separate least-privilege send identity is the reference design. The interviews did not establish that every role, including sales, already sent mail that way."
+  },
+  "wake_by_role": "not-recorded-here-on-purpose",
+  "wake_alternatives_seen": ["sns_worker_queue", "coordinator_fanout", "peer_wake_with_dormant_direct_webhook"],
+  "authorization": {
+    "sales": "human_approval_every_external_send",
+    "support": "human_approval_every_external_send",
+    "projects": "human_approval_every_external_send",
+    "hello": {
+      "default_in_this_library": "human_approval_every_external_send",
+      "observed_exception": "owner-granted first reply for a genuine new lead, inquiry, or routing message",
+      "excluded": ["follow_up", "partner", "press", "vendor", "personal", "legal", "financial", "government", "spam", "no_reply"]
+    }
+  },
+  "optional_not_universal": ["cloudflare_r2_for_artwork", "cloudflare_access_in_front_of_a_crm_api"]
+}

@@ -1,0 +1,9 @@
+From: Pat Lee <pat@example.net>
+To: hello@example.com
+Subject: Question about ACME
+Message-ID: <example-message@example.net>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Date: Fri, 6 Nov 2026 00:00:00 +0000
+
+Hello, I have a new question about ACME. This fixture is fictional.

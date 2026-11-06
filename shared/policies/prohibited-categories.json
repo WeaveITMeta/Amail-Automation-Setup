@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "note": "Any non-empty prohibited_categories list forces human review in the reference gate, even if a category is missing from this file. The file is the operator-facing list. It does not grant sends.",
+  "categories": [
+    "legal_threat",
+    "payment_change",
+    "refund_or_credit",
+    "pricing_or_discount_commitment",
+    "contract_or_terms",
+    "credentials_or_secrets",
+    "account_access_change",
+    "sensitive_personal_data",
+    "employment_decision",
+    "abuse_or_safety",
+    "security_incident",
+    "vulnerability_report",
+    "ambiguous_intent",
+    "government_request",
+    "financial_request",
+    "safety_emergency",
+    "opt_out"
+  ]
+}

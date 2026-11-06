@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/triage-report.schema.json",
+  "title": "Internal triage report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "idempotency_key", "role", "audience", "intent_hypothesis", "internal_only", "recommended_next_step", "external_send"],
+  "properties": {
+    "schema_version": {"type": "integer", "const": 1},
+    "idempotency_key": {"type": "string", "pattern": "^[A-Za-z0-9._-]{8,200}$"},
+    "role": {"type": "string", "pattern": "^[a-z0-9-]+$"},
+    "audience": {"type": "string", "pattern": "^[a-z0-9_]+$"},
+    "intent_hypothesis": {"type": "string", "pattern": "^[a-z0-9_]+$"},
+    "internal_only": {"type": "boolean", "const": true},
+    "recommended_next_step": {"type": "string"},
+    "external_send": {"type": "string", "enum": ["not_authorized", "pending_human", "policy_candidate"]}
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "draft_id": "draft_example_001",
+  "idempotency_key": "EXAMPLE_SES_MESSAGE_ID",
+  "permission": "draft",
+  "role": "hello",
+  "from": "hello@example.com",
+  "to": ["pat@example.net"],
+  "subject": "We received your inquiry",
+  "threading": {
+    "in_reply_to": "<example-message@example.net>",
+    "references": ["<example-message@example.net>"]
+  },
+  "template_id": "hello-first-inquiry",
+  "text": "Thank you for writing to ACME. A person will review the inquiry.",
+  "html": "<p>Thank you for writing to ACME.</p><p><img src=\"https://assets.example.com/email/hello/mark.png\" alt=\"ACME\"></p>",
+  "asset_urls": ["https://assets.example.com/email/hello/mark.png"]
+}

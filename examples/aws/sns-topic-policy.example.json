@@ -1,0 +1,18 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowSESPublish",
+      "Effect": "Allow",
+      "Principal": {"Service": "ses.amazonaws.com"},
+      "Action": "SNS:Publish",
+      "Resource": "arn:aws:sns:REGION:EXAMPLE_ACCOUNT_ID:example-inbound",
+      "Condition": {
+        "StringEquals": {
+          "AWS:SourceAccount": "EXAMPLE_ACCOUNT_ID",
+          "AWS:SourceArn": "arn:aws:ses:REGION:EXAMPLE_ACCOUNT_ID:receipt-rule-set/acme-inbound:receipt-rule/acme-store-and-notify"
+        }
+      }
+    }
+  ]
+}

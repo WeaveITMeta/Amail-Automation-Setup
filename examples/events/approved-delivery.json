@@ -1,0 +1,17 @@
+{
+  "draft_id": "draft_example_009",
+  "from": "support@example.com",
+  "to": ["pat@example.net"],
+  "cc": [],
+  "bcc": [],
+  "reply_to": [],
+  "subject": "Re: Question about ACME",
+  "text": "A person wrote this ACME reply.",
+  "html": "<p>A person wrote this ACME reply.</p>",
+  "template_id": "human-composed",
+  "template_version": "0",
+  "headers": {
+    "in_reply_to": "<example-message@example.net>",
+    "references": ["<example-message@example.net>"]
+  }
+}

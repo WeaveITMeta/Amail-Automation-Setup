@@ -24,7 +24,7 @@ The automatic path does not read an approval the model wrote. `delivery_allowed`
 
 Both paths then claim the send key on a `ReservationLedger`. The reference class is in-process and atomic. It is not durable storage. The claim moves the key to `handoff_started` before the provider call. A crash after that claim, a timeout, or any unknown result must not trigger another automatic send of the same key. Record `ambiguous` and stop. A human retry uses a new approval id. Do not treat a new empty ledger after a restart as proof that the previous handoff did not happen.
 
-The kill switch is an unconditional stop. A stored approval does not override it. The same is true for duplicates, virus failures, tests, notices, suppression, opt-out, no-reply senders, and a null reverse path.
+The kill switch, the human-only role list, the confidence threshold, and the rubric are the configurable quality gate. A passing rubric is one input. It is not the gate. The kill switch is an unconditional stop. A stored approval does not override it. The same is true for duplicates, virus failures, tests, notices, suppression, opt-out, no-reply senders, and a null reverse path. The sender also refuses when the suppression log has the recipient, when the From address is off the class allowlist, or when the attempt number is above 3.
 
 DMARC authenticates the header From. The automatic destination is that address. The envelope MAIL FROM is not a reply target, including when it is `<>`.
 

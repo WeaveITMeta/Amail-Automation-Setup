@@ -31,6 +31,26 @@ class MessageTests(unittest.TestCase):
         )
         self.assertEqual(classify_inbound({"From": "pat@example.net", "Subject": "Hello"}, suppression_hit=True), "suppression_or_opt_out")
         self.assertIsNone(classify_inbound({"From": "Pat Lee <pat@example.net>", "Subject": "Question about ACME", "Auto-Submitted": "no"}))
+        self.assertEqual(
+            classify_inbound({"From": "news@example.net", "List-Id": "<news.example.net>", "Subject": "Weekly"}),
+            "mailing_list",
+        )
+        self.assertEqual(
+            classify_inbound({"From": "news@example.net", "List-Unsubscribe": "<https://example.net/u>", "Subject": "Weekly"}),
+            "mailing_list",
+        )
+        self.assertEqual(classify_inbound({"From": "pat@example.net", "Return-Path": "<>", "Subject": "Hi"}), "null_reverse_path")
+        self.assertEqual(
+            classify_inbound({"From": "pat@example.net", "X-Auto-Response-Suppress": "All", "Subject": "Hi"}),
+            "test_or_notice",
+        )
+        self.assertEqual(
+            classify_inbound(
+                {"From": "hello@example.com", "Subject": "Hi"},
+                own_addresses=["Hello <hello@example.com>"],
+            ),
+            "own_address_loop",
+        )
 
     def test_claim_happens_before_a_second_run(self):
         self.assertTrue(on_conditional_claim(created=True)["proceed"])

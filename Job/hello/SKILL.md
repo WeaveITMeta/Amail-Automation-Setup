@@ -73,6 +73,8 @@ Emergencies and threats of harm follow the core escalation rule and the operator
 
 Library default: Hello is human-only and the kill switch is on. One observed deployment had an owner-granted exception for a first reply to a genuine new lead, inquiry, or routing message. Exclusions in that exception: follow-ups, partner, press, vendor, personal, legal, financial, government, spam, and no-reply. The file `shared/policies/hello-first-reply.example.json` records the shape with the rule disabled. Loading this skill does not enable it. A passing rubric does not enable it. Sales, support, and projects do not inherit it.
 
+That first reply is one-to-one mail, not a promotional list. Do not add one-click list headers to it. Automatic sends of the fixed template carry `Auto-Submitted: auto-replied` so another responder can see the loop.
+
 The observed Hello exception, when an owner is studying it, is documented in [hello-first-reply.example.json](../../shared/policies/hello-first-reply.example.json). That file ships with the rule disabled and the kill switch on. It is an example of per-role, per-intent authorization. It is not a default, and it does not apply to this role unless this role is Hello and an owner enables that exact rule outside this skill.
 
 Automatic triage reports are internal. They are not external sends.

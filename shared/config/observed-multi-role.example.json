@@ -6,6 +6,7 @@
     "raw_mime": "s3-object",
     "wake_payload": "object-reference",
     "worker": "managed-linux",
+    "worker_is_the_mail_client": false,
     "read": "read-only-aws-cli-get-object",
     "polling": false,
     "owner_pc": false,

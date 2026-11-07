@@ -71,6 +71,8 @@ Emergencies and threats of harm follow the core escalation rule and the operator
 
 Default policy: human approval for every external send. One observed deployment gave support no auto-reply permission. Acknowledgement templates stay disabled until an owner writes a separate rule. This skill does not write that rule.
 
+A support reply is customer correspondence. It does not need RFC 8058 one-click unsubscribe headers. Those headers belong on promotional bulk mail. The From address has to be a replyable address on the operator allowlist. A no-reply address is not a support identity. Do not invent a physical street address for this role.
+
 The observed Hello exception, when an owner is studying it, is documented in [hello-first-reply.example.json](../../shared/policies/hello-first-reply.example.json). That file ships with the rule disabled and the kill switch on. It is an example of per-role, per-intent authorization. It is not a default, and it does not apply to this role unless this role is Hello and an owner enables that exact rule outside this skill.
 
 Automatic triage reports are internal. They are not external sends.

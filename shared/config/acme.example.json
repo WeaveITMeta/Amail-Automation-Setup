@@ -33,7 +33,9 @@
     "worker_disk": "ephemeral"
   },
   "runtime": {
-    "worker": "managed-linux",
+    "worker": "managed-service",
+    "observed_worker_example": "managed-linux",
+    "mail_client": "Amail on Windows, macOS, and Linux, or NOVA, Grok Bot, or another compatible client. No installer is shipped here.",
     "owner_pc_required": false,
     "reader_identity": "read-only-get-object",
     "sender_identity": "separate-least-privilege-ses-send",
@@ -70,6 +72,17 @@
     "catalog": "catalog/roles.json",
     "routes": "catalog/routes.example.json",
     "load_before_handling": true
+  },
+  "sender": {
+    "verified_domain": "example.com",
+    "postal_address": null,
+    "note": "Class allowlists are examples. A live IAM condition is unverified until that policy can be read. This file does not authorize SES and it does not publish DNS.",
+    "by_class": {
+      "one_to_one": ["hello@example.com", "sales@example.com", "support@example.com", "projects@example.com"],
+      "customer_support": ["support@example.com"],
+      "transactional": ["receipts@example.com"],
+      "promotional_bulk": ["news@example.com"]
+    }
   },
   "approval": {
     "default_external_send": "human_approval",

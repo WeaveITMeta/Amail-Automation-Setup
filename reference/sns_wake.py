@@ -109,3 +109,81 @@ def _region(topic_arn):
     if len(parts) < 6 or parts[0] != "arn" or parts[1] != "aws" or parts[2] != "sns" or not parts[3]:
         raise ValueError("SNS topic ARN is not usable")
     return parts[3]
+
+
+def assess_inbound_relay(
+    envelope,
+    *,
+    expected_topic_arn,
+    expected_bucket,
+    signature_valid,
+    now=None,
+    seen_message_ids=None,
+    rate_ok=None,
+    max_age_seconds=3600,
+    skew_seconds=300,
+):
+    """Assess an inbound S3 pointer relay. This is not bounce or complaint handling.
+
+    Signature and topic checks are the same ones the wake uses. Freshness,
+    replay, and rate stay unproven until the caller supplies a clock, a
+    seen-id set, and a rate result. Supplying them enforces the check.
+    Bounce and complaint payloads do not suppress anyone here. Use
+    `reference.feedback.ingest_feedback` for that consumer.
+    """
+
+    from reference.timestamps import age_problem, parse_utc
+
+    result = {
+        "feedback_handled": False,
+        "kind": "inbound_s3_relay",
+        "problems": [],
+        "reference": None,
+    }
+    if not isinstance(envelope, dict):
+        result["problems"].append("malformed")
+        return result
+    try:
+        result["reference"] = wake_from_verified_notification(
+            envelope,
+            expected_topic_arn=expected_topic_arn,
+            expected_bucket=expected_bucket,
+            signature_valid=signature_valid,
+        )
+    except ValueError as exc:
+        text = str(exc)
+        if "signature was not verified" in text:
+            result["problems"].append("signature_unverified")
+        elif "topic" in text:
+            result["problems"].append("topic_unbound")
+        elif "certificate" in text:
+            result["problems"].append("certificate_untrusted")
+        else:
+            result["problems"].append("not_an_s3_pointer")
+        return result
+    if now is None:
+        result["problems"].append("freshness_unproven")
+    else:
+        try:
+            stamp = parse_utc(envelope.get("Timestamp"))
+            fresh = age_problem(stamp, now, max_age_seconds=max_age_seconds, skew_seconds=skew_seconds)
+        except (TypeError, ValueError):
+            fresh = "timestamp_missing"
+        if fresh:
+            result["reference"] = None
+            result["problems"].append(fresh)
+            return result
+    if seen_message_ids is None:
+        result["problems"].append("replay_unproven")
+    else:
+        message_id = envelope.get("MessageId")
+        if not isinstance(seen_message_ids, (set, frozenset, list)) or message_id in seen_message_ids:
+            result["reference"] = None
+            result["problems"].append("replay")
+            return result
+    if rate_ok is None:
+        result["problems"].append("rate_unproven")
+    elif rate_ok is not True:
+        result["reference"] = None
+        result["problems"].append("rate_limited")
+    return result

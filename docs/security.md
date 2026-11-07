@@ -5,12 +5,14 @@ Identities:
 | Identity | Attached to | Allows | Does not allow |
 | --- | --- | --- | --- |
 | SES receipt | The service, via the bucket policy | `s3:PutObject` on `raw/*` from the receipt rule ARN | Public read, delete, or send |
-| Reader | The managed Linux worker | `s3:GetObject` on `raw/*` | `s3:ListBucket`, `ses:SendEmail`, IAM changes |
+| Reader | The managed worker (Linux in one observed deployment) | `s3:GetObject` on `raw/*` | `s3:ListBucket`, `ses:SendEmail`, IAM changes |
 | Sender | The approval sender, not the agent | `ses:SendEmail` and `ses:SendRawEmail` for specific From addresses | Reading the raw prefix, editing the kill switch |
 | Approver | A person | Writing an approval row | Assuming the reader role inside the model |
 | Agent process | The model tools | Draft and triage writes | Send, policy writes, key deletion |
 
 JSON sketches: [reader](../examples/iam/reader-role.example.json), [sender](../examples/iam/sender-role.example.json), [bucket](../examples/iam/inbound-bucket-policy.example.json).
+
+The sender sketch limits `ses:SendEmail` and `ses:SendRawEmail` with a `ses:FromAddress` condition. That sketch is not a live policy read. `sts get-caller-identity` succeeding does not show those actions. If the IAM read is denied, the From restriction is unverified. Do not treat a similarly named role as the sender, and do not add SES to DNS from this file.
 
 The worker also checks that the key it fetches equals the key on the wake. A bucket or key mentioned inside the MIME is ignored. See `reference/object_ref.py`.
 

@@ -12,7 +12,7 @@ Receipt failures are SES retries. If the bucket policy is wrong, fix the policy.
 
 Queue deliveries are at-least-once. The conditional handled-key create makes the second delivery a duplicate attempt. Set the visibility timeout longer than a sober upper bound on one attempt so a slow worker is not retried while it is still running.
 
-After several receives, the wake message sits on a dead-letter queue. An operator reads the error class, not the body, and decides whether to append a resume attempt. Redrive does not send email by itself.
+After several receives, the wake message sits on a dead-letter queue. The example redrive count is 5, and that count is for the wake, not for another send. An operator reads the error class, not the body, and decides whether to append a resume attempt. Redrive does not send email by itself. Provider send attempts stop at 3, and only before the reservation claim. After `handoff_started`, the reference does not retry. A retry that does happen, under a new approval id, reads the suppression log again.
 
 Classify permanent failures (bad wake, missing skill, virus quarantine, suppression) so they record an outcome instead of cycling until the dead-letter queue fills with the same message.
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 import copy
 import json
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -14,7 +15,20 @@ sys.path.insert(0, str(ROOT))
 from reference.binding import approval_problem, payload_sha256  # noqa: E402
 from reference.reply_gate import HUMAN, SEND, STOP, decide, delivery_allowed  # noqa: E402
 from reference.reservation import ReservationLedger  # noqa: E402
+from reference.suppression import SuppressionLog  # noqa: E402
 from reference.templates import render_template  # noqa: E402
+
+ALLOWLIST = {
+    "one_to_one": [
+        "hello@example.com",
+        "sales@example.com",
+        "support@example.com",
+        "projects@example.com",
+    ],
+    "customer_support": ["support@example.com"],
+    "transactional": ["receipts@example.com"],
+    "promotional_bulk": ["news@example.com"],
+}
 
 TEMPLATE_TEXT = (ROOT / "shared" / "templates" / "hello-first-inquiry.txt").read_text(encoding="utf-8")
 TEMPLATE_HTML = (ROOT / "shared" / "templates" / "hello-first-inquiry.html").read_text(encoding="utf-8")
@@ -25,7 +39,12 @@ ASSET = "https://assets.example.com/email/hello/mark.png"
 
 
 def rates(**overrides):
-    state = {"role_sent_last_hour": 0, "sender_sent_last_day": 0, "recipient_sent_last_hour": 0}
+    state = {
+        "role_sent_last_hour": 0,
+        "sender_sent_last_day": 0,
+        "recipient_sent_last_hour": 0,
+        "recipient_sent_last_day": 0,
+    }
     state.update(overrides)
     return state
 
@@ -84,9 +103,11 @@ def template_message(**overrides):
         "html": render_template(TEMPLATE_HTML, VARIABLES),
         "template_id": "hello-first-inquiry",
         "template_version": TEMPLATE_VERSION,
+        "mail_class": "one_to_one",
         "headers": {
             "in_reply_to": "<example-message@example.net>",
             "references": ["<example-message@example.net>"],
+            "auto_submitted": "auto-replied",
         },
     }
     message.update(overrides)
@@ -106,9 +127,11 @@ def human_message(**overrides):
         "html": "<p>A person wrote this ACME reply.</p>",
         "template_id": "human-composed",
         "template_version": "0",
+        "mail_class": "customer_support",
         "headers": {
             "in_reply_to": "<example-message@example.net>",
             "references": ["<example-message@example.net>"],
+            "auto_submitted": "no",
         },
     }
     message.update(overrides)
@@ -153,6 +176,9 @@ def deliver(policy, message, *, req=None, approval=None, ledger=None, **kwargs):
         "required_assets": [ASSET],
     }
     params.update(kwargs)
+    params.setdefault("sender_allowlist", ALLOWLIST)
+    params.setdefault("verified_domain", "example.com")
+    params.setdefault("suppression_log", SuppressionLog(Path(tempfile.mkdtemp()) / "suppression.jsonl"))
     return delivery_allowed(**params)
 
 

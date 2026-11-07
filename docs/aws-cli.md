@@ -1,6 +1,6 @@
 # AWS CLI templates
 
-These commands are not a setup script. Confirm each subcommand against `aws <service> help` for the CLI version you have. Substitute placeholders only after you confirm the account and region. Do not commit the substituted files if they contain live names you do not want published. `EXAMPLE_ACCOUNT_ID`, `REGION`, and `example-com-inbound-mail` are placeholders. The bucket name must be globally unique; the example may already be taken.
+These commands are examples, not a setup script, and they are not a platform test. The AWS CLI v2 is published for Windows, macOS, and Linux. This repository does not install it and does not run it on those systems. The blocks below are bash-style examples. On Windows, the same subcommands work in PowerShell if you replace `$VAR` with the shell's own variable syntax. Confirm each subcommand against `aws <service> help` for the CLI version you have. Substitute placeholders only after you confirm the account and region. Do not commit the substituted files if they contain live names you do not want published. `EXAMPLE_ACCOUNT_ID`, `REGION`, and `example-com-inbound-mail` are placeholders. The bucket name must be globally unique; the example may already be taken. Nothing here changes DNS or IAM.
 
 Export a profile and region. Do not pass access keys on the command line. Silent entry is described in the README.
 

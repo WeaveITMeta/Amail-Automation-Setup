@@ -7,7 +7,7 @@ This page expands the README section with the same facts. It is not a runbook fo
 Interviews agreed on the following, so the template treats them as the design:
 
 - Raw MIME lives in S3. The wake carries the bucket and key.
-- The worker is managed Linux. It uses the AWS CLI with an identity that can get the object and cannot send.
+- The worker in that deployment was managed Linux. It used the AWS CLI with an identity that can get the object and cannot send. Later workers can use another managed runtime if the claim, the single-object read, and the split identities stay intact. The mail client is not that worker.
 - Nobody polls the bucket, and nobody waits for an owner PC.
 - The handled key is append-only and is created before the message is parsed.
 - The role skill comes from the catalog before handling.

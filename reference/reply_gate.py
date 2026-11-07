@@ -11,8 +11,11 @@ from __future__ import annotations
 import re
 
 from reference.binding import addr_spec, approval_problem, envelope_problem, payload_sha256, template_problem
+from reference.outbound import delivery_blockers
 from reference.reservation import ReservationLedger
+from reference.retry import attempt_allowed
 from reference.send_ready import rendered_failures
+from reference.suppression import SuppressionLog, recipients_suppressed
 
 HUMAN = "human_review"
 SEND = "template_send"
@@ -303,17 +306,33 @@ def delivery_allowed(
     template_variables=None,
     allow_hosts=(),
     required_assets=(),
+    suppression_log=None,
+    sender_allowlist=None,
+    verified_domain=None,
+    postal_address=None,
+    send_attempt=1,
 ):
     """Authorize one handoff of this exact message.
 
     The decision is recomputed here. A caller-supplied action or recipient
     list is not an input. `ledger` must be a ReservationLedger. Omitting it
+    refuses the send. `suppression_log` is read again for this attempt,
+    including a later retry that uses a new approval id. Omitting the log
     refuses the send. A True result means this caller won `handoff_started`
     and may call the provider once. A crash after that, or an unknown
     provider result, stays on that key and does not become another send.
     """
 
     if not isinstance(ledger, ReservationLedger):
+        return False
+    if not isinstance(suppression_log, SuppressionLog):
+        return False
+    if not attempt_allowed(policy, send_attempt):
+        return False
+    try:
+        if recipients_suppressed(suppression_log, message):
+            return False
+    except (TypeError, ValueError):
         return False
     decision = decide(request, policy, rate_state)
     reasons = decision.get("reasons")
@@ -322,6 +341,14 @@ def delivery_allowed(
     if rendered_failures(message, allow_hosts=allow_hosts, required_assets=required_assets):
         return False
     action = decision.get("action")
+    if delivery_blockers(
+        message,
+        action=action,
+        sender_allowlist=sender_allowlist,
+        verified_domain=verified_domain,
+        postal_address=postal_address,
+    ):
+        return False
     try:
         digest = payload_sha256(message)
     except (TypeError, ValueError):
@@ -346,6 +373,8 @@ def delivery_allowed(
             is not None
         ):
             return False
+        if not _recipients_still_clear(suppression_log, message):
+            return False
         return ledger.claim_handoff(decision.get("send_key"), digest)
     if not (len(reasons) == 1 and reasons[0] in HUMAN_CAN_RELEASE):
         return False
@@ -354,8 +383,17 @@ def delivery_allowed(
             return False
         if approval.get("payload_sha256") != digest:
             return False
+        if not _recipients_still_clear(suppression_log, message):
+            return False
         return ledger.claim_handoff(approval.get("approval_id"), digest)
     return False
+
+
+def _recipients_still_clear(suppression_log, message):
+    try:
+        return not recipients_suppressed(suppression_log, message)
+    except (TypeError, ValueError):
+        return False
 
 
 def _matching_rule(rules, role, intent):
@@ -376,6 +414,7 @@ def _rate_limit(limits, rate_state):
         ("per_role_per_hour", "role_sent_last_hour"),
         ("per_sender_per_day", "sender_sent_last_day"),
         ("per_recipient_address_per_hour", "recipient_sent_last_hour"),
+        ("per_recipient_address_per_day", "recipient_sent_last_day"),
     )
     for limit_key, state_key in pairs:
         cap = limits.get(limit_key)

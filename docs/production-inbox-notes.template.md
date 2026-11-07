@@ -8,7 +8,8 @@ Copy this file when a later interview is verified. Leave unknown fields as `unkn
 - Paths that exist but are dormant:
 - Raw MIME store (class only, such as s3-object):
 - Reader identity (class only, such as read-only get-object on the woken key):
-- Worker (managed Linux or other):
+- Worker runtime (example: the interviewed deployment used managed Linux; this is not the mail client):
+- Mail client (example: Amail on Windows, macOS, or Linux; NOVA, Grok Bot, or another compatible client). This repo has no installer and no client test:
 - Polling in use (yes only if an owner explicitly approved it):
 - Handled key store (external and append-only, or other):
 - Attempt log present (yes or no):

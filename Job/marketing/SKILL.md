@@ -67,6 +67,8 @@ Emergencies and threats of harm follow the core escalation rule and the operator
 
 Human approval for every external send. Marketing is human-only. Opt-out never receives a persuasive reply.
 
+Promotional bulk mail is not a support reply. When an owner sends it, the message needs both RFC 8058 headers, DKIM coverage of List-Unsubscribe and List-Unsubscribe-Post, and a one-click HTTPS POST that suppresses without a login or a second confirmation. GET must not suppress. Prior consent does not remove the need for the operator's valid physical postal address on commercial mail. This skill does not contain that address, and it does not make the address the From identity. Record the opt-out in the suppression log before any later send, including a retry.
+
 The observed Hello exception, when an owner is studying it, is documented in [hello-first-reply.example.json](../../shared/policies/hello-first-reply.example.json). That file ships with the rule disabled and the kill switch on. It is an example of per-role, per-intent authorization. It is not a default, and it does not apply to this role unless this role is Hello and an owner enables that exact rule outside this skill.
 
 Automatic triage reports are internal. They are not external sends.

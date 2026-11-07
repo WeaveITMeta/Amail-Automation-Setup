@@ -56,19 +56,31 @@ def canonical_delivery(message):
     in_reply_to = headers.get("in_reply_to")
     if not isinstance(in_reply_to, str) or not isinstance(references, list):
         raise ValueError("threading headers are missing")
+    mail_class = message.get("mail_class")
+    if mail_class not in {"transactional", "customer_support", "one_to_one", "promotional_bulk"}:
+        raise ValueError("mail class is missing")
+    auto_submitted = headers.get("auto_submitted", "")
+    list_unsubscribe = headers.get("list_unsubscribe", "")
+    list_unsubscribe_post = headers.get("list_unsubscribe_post", "")
+    if not isinstance(auto_submitted, str) or not isinstance(list_unsubscribe, str) or not isinstance(list_unsubscribe_post, str):
+        raise ValueError("class headers are invalid")
     for key in ("to", "cc", "bcc", "reply_to"):
         if key not in message:
             raise ValueError(f"{key} is required on the delivery")
     to = _addr_list(message.get("to"), minimum=1)
     return {
+        "auto_submitted": auto_submitted,
         "bcc": _addr_list(message.get("bcc"), minimum=0),
         "cc": _addr_list(message.get("cc"), minimum=0),
-        "reply_to": _addr_list(message.get("reply_to"), minimum=0),
         "draft_id": _token(message.get("draft_id"), "draft_id"),
         "from": addr_spec(message.get("from")),
         "html": _body(message.get("html")),
         "in_reply_to": in_reply_to,
+        "list_unsubscribe": list_unsubscribe,
+        "list_unsubscribe_post": list_unsubscribe_post,
+        "mail_class": mail_class,
         "references": [str(item) for item in references],
+        "reply_to": _addr_list(message.get("reply_to"), minimum=0),
         "subject": _body(message.get("subject")),
         "template_id": _token(message.get("template_id"), "template_id"),
         "template_version": _token(message.get("template_version"), "template_version"),

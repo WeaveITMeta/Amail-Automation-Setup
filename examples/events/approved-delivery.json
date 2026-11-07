@@ -10,8 +10,10 @@
   "html": "<p>A person wrote this ACME reply.</p>",
   "template_id": "human-composed",
   "template_version": "0",
+  "mail_class": "customer_support",
   "headers": {
     "in_reply_to": "<example-message@example.net>",
-    "references": ["<example-message@example.net>"]
+    "references": ["<example-message@example.net>"],
+    "auto_submitted": "no"
   }
 }

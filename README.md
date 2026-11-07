@@ -4,6 +4,12 @@ A business-agnostic template library for inbound company email led by Amazon SES
 
 ACME, `example.com`, `example.net`, and `example.org` are placeholders. Replace them in your own uncommitted configuration. Do not put account IDs, bucket names from a live account, credentials, or real customer mail in this repository.
 
+Amail is a universal cross-platform email application for Windows, macOS, and Linux. NOVA, Grok Bot, and any compatible client can use it. This repository does not ship a client installer, and it does not contain a Windows, macOS, or Linux client test suite. Shell commands below are examples for an operator who already has the AWS CLI.
+
+A robot for every inbox on your domain.
+
+The future of work email is a crew of agents and you.
+
 ## What you can take from here
 
 - A reference path: SES receives mail, stores the raw MIME in object storage, and a wake delivers an object reference to a role agent.
@@ -26,7 +32,7 @@ Four role inboxes were interviewed and sanitized. The notes below are reusable d
 
 - SES stored the raw MIME in S3.
 - An event, webhook, or coordinator woke the role agent with an object reference. The body was not the wake payload.
-- The agent ran on a managed Linux worker and read only that object with a read-only AWS CLI identity.
+- The agent in that deployment ran on a managed Linux worker and read only that object with a read-only AWS CLI identity. That is the compute the interview observed. It is not a requirement that the Amail client, or every future worker, run on Linux.
 - The design did not depend on polling, and it did not depend on a person's computer staying on.
 - An append-only handled key stopped a second handling run of the same message.
 - The role `SKILL.md` was loaded from a skill catalog before handling.
@@ -72,7 +78,7 @@ flowchart TD
   s3 --> snsPath
   s3 --> coord
   s3 --> peer
-  agent[Managed Linux role agent]
+  agent[Managed role worker]
   snsPath --> agent
   coord --> agent
   peer --> agent
@@ -88,7 +94,7 @@ flowchart TD
   senderRole --> sesSend[SES send API]
 ```
 
-The diagram shows three arrows out of S3 so the alternatives are visible. An actual deployment enables one of them. A dormant webhook stays drawn as dormant, not as a second consumer.
+The diagram shows three arrows out of S3 so the alternatives are visible. An actual deployment enables one of them. A dormant webhook stays drawn as dormant, not as a second consumer. The worker box is the automation process. One interviewed deployment ran it on managed Linux. A person's mail client is separate, and this library does not install that client.
 
 Reference pieces, in the order the worker uses them:
 
@@ -221,7 +227,9 @@ Shipped files:
 
 An owner who intends the Hello grant edits a private copy, keeps the exclusions, turns the specific rule on, turns the kill switch off, and re-runs the tests. An agent does not make that edit. Sales, support, and projects do not gain the grant by being in the same deployment.
 
-Suppression list hits and local opt-outs are decided before drafting, not after a polite reply is written. Configuration-set events for bounces and complaints feed the account suppression list. Do not route around a suppression to "get a message through."
+Suppression list hits and local opt-outs are decided before drafting, not after a polite reply is written. The reference send path reads a suppression log again immediately before the provider handoff, including a later retry that uses a new approval id. A sentence in a skill file is not that log. Configuration-set events for bounces and complaints are a different consumer from the inbound S3 relay. Permanent bounces and complaints suppress. Transient bounces do not. Do not route around a suppression to "get a message through."
+
+Promotional bulk mail, transactional mail, and customer-support replies are different classes. RFC 8058 one-click headers are required here for promotional bulk mail, and they are not required for a support reply. Commercial promotional mail still needs the operator's own physical postal address. This library does not ship a personal address as the From identity. The inbound relay can validate an SNS signature and a topic. That validation is not bounce handling. Details and the sources, with the date they were read: [docs/deliverability-and-privacy.md](docs/deliverability-and-privacy.md). The operator checklist is [docs/deployment-evidence-checklist.md](docs/deployment-evidence-checklist.md).
 
 ## SES sending
 
@@ -398,7 +406,7 @@ Rollback is the kill switch first (stops sends), then disabling the receipt rule
 | Nothing arrives | MX value and region, active rule set, domain verification, DNS propagation, a leftover Email Routing MX, SES block-list rejection |
 | No S3 object | Bucket policy `SourceArn`, region, Object Lock default retention. If you chose SSE-KMS or the receipt-action KMS option, also the key policy. SSE-S3 does not use that key. |
 | Duplicate drafts | Claim is not atomic or not outside the workspace, or the body was read before the claim |
-| Agent runs on a laptop | Move it to the managed Linux worker. The reference does not use an owner PC |
+| Agent runs on a person's computer | Move the automation to a managed worker. One deployment used Linux. A laptop is not the reference, and this repo has no client installer |
 | A quiet webhook | It may be dormant. Find the coordinator or peer that actually wakes the role |
 | Send fails | Sandbox, unverified From, suppression, sender IAM, missing approval, kill switch |
 | DMARC fails | MAIL FROM host mixed up with inbound MX, missing DKIM, two SPF TXT records |
@@ -430,6 +438,7 @@ What drives the bill:
 
 - The library is documentation plus a reference gate. It is not a deployed inbox and it is not those four interviewed roles.
 - The gate believes the flags the trusted worker passes. A model that is allowed to set `rubric_pass` or `audience` can lie. Do not give it that job.
+- Reference checks for suppression, one-click unsubscribe, and feedback are not a live sending wrapper. A skill sentence that says "suppress" does not write the log.
 - Pattern checks are not a full data-loss-prevention product.
 - Nothing here is a legal, medical, or compliance program.
 - SES receiving does not exist in every region, and the sandbox is per region.

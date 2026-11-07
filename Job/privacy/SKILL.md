@@ -67,6 +67,8 @@ Emergencies and threats of harm follow the core escalation rule and the operator
 
 Human approval for every external send. Privacy is human-only. Opt-out is handled by suppression, not by a marketing reply.
 
+Lawful basis, consent, and a marketing objection are operator determinations. This skill does not record them and it does not certify GDPR, ePrivacy, or CAN-SPAM compliance. A marketing objection still has to reach the suppression log before another promotional send. A support reply is not that promotional send.
+
 The observed Hello exception, when an owner is studying it, is documented in [hello-first-reply.example.json](../../shared/policies/hello-first-reply.example.json). That file ships with the rule disabled and the kill switch on. It is an example of per-role, per-intent authorization. It is not a default, and it does not apply to this role unless this role is Hello and an owner enables that exact rule outside this skill.
 
 Automatic triage reports are internal. They are not external sends.

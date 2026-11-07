@@ -10,6 +10,7 @@ The checklist in the [README](../README.md) is the canonical list. These notes a
 - Mail: the first external message is a simulator send approved by a person. Customers come after that.
 - Policy: start from the human-only file. The Hello file is a shape to test, shipped disabled.
 - Artwork: put a public HTTPS file on an allowlisted host and look at the rendered HTML, including the image request, before you call the draft send-ready.
-- CI: `python3 -m unittest discover -s tests -v` on every policy or skill change.
+- CI: `python3 -m unittest discover -s tests -v` on every policy or skill change. That command is a shell example. It does not install Amail and it does not send mail.
+- Client: people read the mailbox in Amail on Windows, macOS, or Linux, or in NOVA, Grok Bot, or another compatible client. The worker that handles SES is a separate process.
 
 Nothing in this repository applies those steps for you.
